@@ -2,21 +2,30 @@ version: '3.8'
 
 # ── Sidekiq4D — Infraestrutura local de desenvolvimento ──────────────────
 #
-# Inicia Redis e Postgres para uso local.
-# O worker Sidekiq4D roda NATIVAMENTE no Windows (ver README.md).
+# Cobre todos os adapters testáveis sem conta cloud:
+#   Redis, PostgreSQL, MongoDB, RabbitMQ, Kafka (+REST Proxy),
+#   LocalStack (SQS), Google Pub/Sub emulator, Jaeger (OTLP).
 #
 # Uso rápido:
-#   docker compose up -d          # sobe tudo em background
-#   docker compose up redis       # só o Redis
-#   docker compose down           # para e remove containers
-#   docker compose down -v        # remove também os volumes
+#   docker compose up -d                     # sobe tudo
+#   docker compose up redis postgres         # só o necessário
+#   docker compose down                      # para e remove containers
+#   docker compose down -v                   # remove também os volumes
 #
-# Strings de conexão para o worker:
-#   Redis:    redis://localhost:6379
-#   Postgres: host=localhost port=5432 dbname=sidekiq4d user=sidekiq4d password=sidekiq4d
+# Strings de conexão para o worker Sidekiq4D:
+#   Redis:            redis://localhost:6379
+#   PostgreSQL:       host=localhost port=5432 dbname=sidekiq4d user=sidekiq4d password=sidekiq4d
+#   MongoDB:          mongodb://localhost:27017
+#   RabbitMQ HTTP:    http://sidekiq4d:sidekiq4d@localhost:15672
+#   Kafka REST Proxy: http://localhost:8082
+#   SQS (LocalStack): http://localhost:4566  region=us-east-1
+#   Google Pub/Sub:   http://localhost:8085  project=sidekiq4d-local
+#   Jaeger OTLP HTTP: http://localhost:4318
+#   Jaeger UI:        http://localhost:16686
 
 services:
 
+  # ── Redis ──────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: sidekiq4d-redis
@@ -32,16 +41,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: sidekiq4d-jaeger
-    ports:
-      - "4318:4318"    # OTLP HTTP (Sidekiq4D envia aqui)
-      - "16686:16686"  # UI web
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    restart: unless-stopped
-
+  # ── PostgreSQL ─────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: sidekiq4d-postgres
@@ -60,8 +60,132 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # ── MongoDB ────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: sidekiq4d-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: sidekiq4d
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── RabbitMQ ───────────────────────────────────────────────────────────
+  # Adapter usa HTTP Management API (porta 15672), não AMQP direto.
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sidekiq4d-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: sidekiq4d
+      RABBITMQ_DEFAULT_PASS: sidekiq4d
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI + HTTP API
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Kafka (KRaft — sem Zookeeper) ──────────────────────────────────────
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: sidekiq4d-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: "1"
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  # Adapter Sidekiq4D usa Confluent REST Proxy (HTTP) — não fala direto com Kafka.
+  kafka-rest:
+    image: confluentinc/cp-kafka-rest:latest
+    container_name: sidekiq4d-kafka-rest
+    environment:
+      KAFKA_REST_HOST_NAME: kafka-rest
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── LocalStack (SQS) ───────────────────────────────────────────────────
+  localstack:
+    image: localstack/localstack:latest
+    container_name: sidekiq4d-localstack
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
+      LOCALSTACK_HOST: localhost
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health | grep -q '\"sqs\": \"available\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  # ── Google Pub/Sub Emulator ────────────────────────────────────────────
+  pubsub:
+    image: google/cloud-sdk:alpine
+    container_name: sidekiq4d-pubsub
+    command: >
+      gcloud beta emulators pubsub start
+      --host-port=0.0.0.0:8085
+      --project=sidekiq4d-local
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+
+  # ── Jaeger (OTLP traces) ───────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: sidekiq4d-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "4318:4318"    # OTLP HTTP (Sidekiq4D envia aqui)
+      - "16686:16686"  # UI web
+    restart: unless-stopped
+
 volumes:
   redis_data:
     driver: local
   postgres_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  kafka_data:
+    driver: local
+  localstack_data:
     driver: local
