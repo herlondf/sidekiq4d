@@ -1,0 +1,30 @@
+# Build artifacts
+**/dcu/
+**/bin/
+*.dcu
+*.dcuil
+*.dcp
+*.exe
+*.res
+*.local
+*.identcache
+*.dsk
+*.stat
+__history/
+__recovery/
+
+# IDE
+*.dproj.local
+*.groupproj.local
+
+# Temp
+outbox_demo.json
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# AI agent instructions (manter só local)
+AGENTS.md
+CLAUDE.md

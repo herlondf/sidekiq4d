@@ -1,0 +1,67 @@
+version: '3.8'
+
+# ── Sidekiq4D — Infraestrutura local de desenvolvimento ──────────────────
+#
+# Inicia Redis e Postgres para uso local.
+# O worker Sidekiq4D roda NATIVAMENTE no Windows (ver README.md).
+#
+# Uso rápido:
+#   docker compose up -d          # sobe tudo em background
+#   docker compose up redis       # só o Redis
+#   docker compose down           # para e remove containers
+#   docker compose down -v        # remove também os volumes
+#
+# Strings de conexão para o worker:
+#   Redis:    redis://localhost:6379
+#   Postgres: host=localhost port=5432 dbname=sidekiq4d user=sidekiq4d password=sidekiq4d
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: sidekiq4d-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: sidekiq4d-jaeger
+    ports:
+      - "4318:4318"    # OTLP HTTP (Sidekiq4D envia aqui)
+      - "16686:16686"  # UI web
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sidekiq4d-postgres
+    environment:
+      POSTGRES_DB:       sidekiq4d
+      POSTGRES_USER:     sidekiq4d
+      POSTGRES_PASSWORD: sidekiq4d
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sidekiq4d -d sidekiq4d"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local

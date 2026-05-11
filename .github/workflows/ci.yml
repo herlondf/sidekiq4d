@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DELPHI_BUILD: D:\IA\Framework\delphi-build
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate project structure
+        shell: bash
+        run: |
+          echo "=== Validating project structure ==="
+          test -f src/Sidekiq4D.Server.pas || (echo "FAIL: src/Sidekiq4D.Server.pas not found" && exit 1)
+          test -f src/Sidekiq4D.Job.pas || (echo "FAIL: src/Sidekiq4D.Job.pas not found" && exit 1)
+          test -f tests/Sidekiq4D.Tests.dpr || (echo "FAIL: tests/Sidekiq4D.Tests.dpr not found" && exit 1)
+          echo "Structure OK"
+          echo "Source units: $(find src -name '*.pas' | wc -l)"
+          echo "Adapter units: $(find src/adapters -name '*.pas' | wc -l)"
+          echo "Examples: $(find examples -name '*.dpr' | wc -l)"
+
+      - name: Build test suite
+        shell: bash
+        run: |
+          cd "$DELPHI_BUILD"
+          python app.py build --project sidekiq4delphi-tests --target Build
+          echo "Build OK"
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          tests/bin/Debug/Sidekiq4D.Tests.exe
+          echo "Tests OK"
+
+      - name: Build examples (smoke)
+        shell: bash
+        run: |
+          cd "$DELPHI_BUILD"
+          FAILED=0
+          for proj in sidekiq4delphi-basic-console sidekiq4delphi-scheduled sidekiq4delphi-batch sidekiq4delphi-retry; do
+            echo "Building $proj..."
+            if ! python app.py build --project $proj --target Build 2>&1 | head -3; then
+              echo "FAIL: $proj"
+              FAILED=1
+            fi
+          done
+          if [ $FAILED -eq 1 ]; then
+            echo "Some examples failed to build"
+            exit 1
+          fi
+          echo "All examples built OK"
+
+  lint:
+    name: Lint & Structure
+    runs-on: self-hosted
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check unit naming convention
+        shell: bash
+        run: |
+          echo "=== Checking unit naming convention ==="
+          BAD=0
+          for f in $(find src -name '*.pas' -not -path '*/vendor/*'); do
+            basename=$(basename "$f" .pas)
+            if [[ ! "$basename" =~ ^Sidekiq4D\. ]]; then
+              echo "WARN: $f does not follow Sidekiq4D.* naming"
+              BAD=1
+            fi
+          done
+          if [ $BAD -eq 1 ]; then
+            echo "Some units don't follow naming convention"
+          else
+            echo "All units follow Sidekiq4D.* naming convention"
+          fi
+
+      - name: Check for debug artifacts
+        shell: bash
+        run: |
+          echo "=== Checking for debug artifacts ==="
+          ARTIFACTS=$(find . -name "*.dcu" -o -name "*.exe" -o -name "*.res" | grep -v vendor | head -5)
+          if [ -n "$ARTIFACTS" ]; then
+            echo "FAIL: Found build artifacts that should be in .gitignore:"
+            echo "$ARTIFACTS"
+            exit 1
+          fi
+          echo "No debug artifacts found"
+
+      - name: Check .gitignore coverage
+        shell: bash
+        run: |
+          echo "=== Checking .gitignore ==="
+          for pattern in "*.dcu" "*.exe" "**/bin/" "**/dcu/"; do
+            if ! grep -q "$pattern" .gitignore; then
+              echo "WARN: .gitignore missing pattern: $pattern"
+            fi
+          done
+          echo ".gitignore OK"

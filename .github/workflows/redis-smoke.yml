@@ -1,0 +1,51 @@
+name: Redis Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/Sidekiq4D.Store.Redis4D.pas'
+      - 'src/Sidekiq4D.Locking.Redis4D.pas'
+      - 'src/Sidekiq4D.Scheduled.Redis4D.pas'
+      - 'src/Sidekiq4D.ClientReliability.Redis4D.pas'
+  workflow_dispatch:
+
+env:
+  DELPHI_BUILD: D:\IA\Framework\delphi-build
+
+jobs:
+  redis-smoke:
+    name: Redis Integration
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Redis availability
+        shell: bash
+        run: |
+          # Try common Redis ports
+          if powershell -Command "Test-NetConnection -ComputerName localhost -Port 6379 -InformationLevel Quiet" 2>/dev/null; then
+            echo "Redis available on port 6379"
+          else
+            echo "SKIP: Redis not available on localhost:6379"
+            echo "REDIS_AVAILABLE=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          echo "REDIS_AVAILABLE=true" >> $GITHUB_ENV
+
+      - name: Build Redis smoke test
+        if: env.REDIS_AVAILABLE == 'true'
+        shell: bash
+        run: |
+          cd "$DELPHI_BUILD"
+          python app.py build --project sidekiq4delphi-redis4d-real-smoke --target Build
+
+      - name: Run Redis smoke test
+        if: env.REDIS_AVAILABLE == 'true'
+        shell: bash
+        run: |
+          tests/bin/Debug/Sidekiq4D.Redis4D.RealSmoke.exe
+          echo "Redis smoke OK — all 4 steps passed"
