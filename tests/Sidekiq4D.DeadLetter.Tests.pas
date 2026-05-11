@@ -15,6 +15,7 @@ uses
   Sidekiq4D.DeadLetter,
   Sidekiq4D.DeadLetter.Store,
   Sidekiq4D.Store.InMemory,
+  Sidekiq4D.Store.Interfaces,
   Sidekiq4D.Queue.Interfaces;
 
 type
@@ -179,9 +180,12 @@ end;
 
 procedure TDeadLetterQueueTests.Delete_NonExistentJob_NoError;
 begin
-  Assert.WillNotRaise(
-    procedure begin FDLQ.Delete('inexistente'); end,
-    'Delete de ID inexistente nao deve levantar excecao');
+  try
+    FDLQ.Delete('inexistente');
+  except
+    on E: Exception do
+      Assert.Fail('Delete de ID inexistente nao deve levantar excecao: ' + E.Message);
+  end;
 end;
 
 procedure TDeadLetterQueueTests.Retry_ExistingJob_InvokesPublishCallback;

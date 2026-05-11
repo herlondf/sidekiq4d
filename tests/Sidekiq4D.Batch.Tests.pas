@@ -208,6 +208,7 @@ procedure TBatchServiceTests.RecordSuccess_EmptyBatchId_DoesNothing;
 begin
   Assert.WillNotRaise(
     procedure begin FService.RecordSuccess(''); end,
+    nil,
     'RecordSuccess com ID vazio não deve levantar exceção');
 end;
 

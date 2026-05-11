@@ -34,7 +34,7 @@ type
     FStore       : ISidekiqStateStore;
     FRetryPublish: TSidekiqRetryPublishProc;
 
-    class function EntryKey(const AJobId: string): string; static; inline;
+    class function EntryKey(const AJobId: string): string; static;
     class function EntryToJson(
       const AEntry: TSidekiqDeadLetterEntry): string; static;
     class function JsonToEntry(

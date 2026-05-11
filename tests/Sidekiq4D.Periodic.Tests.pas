@@ -353,6 +353,7 @@ begin
     begin
       ApplyPeriodicAttributesToStrings(LDef, nil);
     end,
+    nil,
     'nil target não deve levantar exceção');
 end;
 

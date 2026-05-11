@@ -152,7 +152,7 @@ end;
 
 procedure TLeaderElectionTests.OwnerId_IsNonEmpty;
 begin
-  Assert.IsFalse(FLeader.OwnerId.IsEmpty,
+  Assert.AreNotEqual('', FLeader.OwnerId,
     'OwnerId deve ser um GUID não vazio');
 end;
 

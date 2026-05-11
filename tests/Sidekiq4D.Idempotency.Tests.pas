@@ -162,6 +162,7 @@ begin
   (FIdempotency as ISidekiqIdempotency).TryBegin('key-renew', 300);
   Assert.WillNotRaise(
     procedure begin FIdempotency.Renew('key-renew', 300); end,
+    nil,
     'Renew de chave em "processing" não deve levantar exceção');
 end;
 
