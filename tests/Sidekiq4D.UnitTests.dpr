@@ -17,6 +17,7 @@ program Sidekiq4D.UnitTests.Runner;
     - Scheduled Store (Schedule, PopDue, ordenação cronológica)
     - Periodic (CronSchedule matching, TruncateToMinute, MakePeriodicDefinition)
     - Outbox (contrato ISidekiqOutbox/ISidekiqOutboxPoller via mock)
+    - WebSocket Hub (TSidekiqInMemoryWebSocketHub — contagem, broadcast, frame encoding)
 }
 
 uses
@@ -34,7 +35,8 @@ uses
   Sidekiq4D.DeadLetter.Tests  in 'Sidekiq4D.DeadLetter.Tests.pas',
   Sidekiq4D.Scheduled.Tests   in 'Sidekiq4D.Scheduled.Tests.pas',
   Sidekiq4D.Periodic.Tests    in 'Sidekiq4D.Periodic.Tests.pas',
-  Sidekiq4D.Outbox.Tests      in 'Sidekiq4D.Outbox.Tests.pas';
+  Sidekiq4D.Outbox.Tests      in 'Sidekiq4D.Outbox.Tests.pas',
+  Sidekiq4D.WebSocket.Tests   in 'Sidekiq4D.WebSocket.Tests.pas';
 
 var
   LRunner: ITestRunner;
