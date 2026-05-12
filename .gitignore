@@ -19,6 +19,8 @@ __recovery/
 
 # Temp
 outbox_demo.json
+tests/libpq.dll
+*.bat
 
 # OS
 Thumbs.db

@@ -70,7 +70,7 @@ begin
   FTopic := 'jobs';
   FInstanceId := 'sidekiq4d-instance';
   FDeadLetterTopic := '';
-  FConsumerCreated := False;
+  FConsumerCreated := 0;
 end;
 
 destructor TSidekiqKafkaAdapter.Destroy;

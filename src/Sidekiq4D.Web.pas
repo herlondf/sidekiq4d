@@ -60,6 +60,16 @@ type
     ScheduledStore  : ISidekiqScheduledStore;
   end;
 
+  ISidekiqWebSocketHub = interface
+    ['{A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}']
+    { Envia JSON para todos os clientes WebSocket conectados. }
+    procedure BroadcastMetrics(const AJson: string);
+    { Número de clientes WebSocket conectados no momento. }
+    function ConnectedClients: Integer;
+    { Registra um IOHandler recém-promovido a WebSocket. }
+    procedure RegisterClient(const AHandler: TObject);
+  end;
+
   ISidekiqWebDashboard = interface
     ['{E5F6A7B8-C9D0-4E1F-AF2B-3C4D5E6F7A8B}']
     { Abre a porta HTTP e começa a aceitar conexões. }

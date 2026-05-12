@@ -42,10 +42,14 @@ uses
   System.SyncObjs,
   System.DateUtils,
   System.JSON,
+  System.Hash,
+  System.NetEncoding,
   IdHTTPServer,
   IdContext,
   IdCustomHTTPServer,
+  IdIOHandler,
   Sidekiq4D.Web,
+  Sidekiq4D.Web.WebSocket,
   Sidekiq4D.Store.Interfaces,
   Sidekiq4D.DeadLetter,
   Sidekiq4D.Queue.Interfaces,
@@ -54,13 +58,28 @@ uses
   Sidekiq4D.Periodic;
 
 type
+  { Thread que faz broadcast de overview pelo WebSocket a cada 1 segundo. }
+  TSidekiqWsBroadcastThread = class(TThread)
+  private
+    FHub    : ISidekiqWebSocketHub;
+    FGetJson: TFunc<string>;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(
+      const AHub    : ISidekiqWebSocketHub;
+      const AGetJson: TFunc<string>);
+  end;
+
   TSidekiqIndyWebDashboard = class(TInterfacedObject, ISidekiqWebDashboard)
   private
-    FServer    : TIdHTTPServer;
-    FConfig    : TSidekiqWebDashboardConfig;
-    FLock      : TCriticalSection;
-    FRunning   : Boolean;
-    FStartTime : TDateTime;
+    FServer          : TIdHTTPServer;
+    FConfig          : TSidekiqWebDashboardConfig;
+    FLock            : TCriticalSection;
+    FRunning         : Boolean;
+    FStartTime       : TDateTime;
+    FWsHub            : ISidekiqWebSocketHub;
+    FWsBroadcastThread: TSidekiqWsBroadcastThread;
 
     procedure HandleCommand(
       AContext     : TIdContext;
@@ -88,6 +107,11 @@ type
     function HandleApiDlqDelete(const AJobId: string): Integer;
     function HandleApiScheduledDelete(
       const AQueue, AAction, ADueAt: string): Integer;
+
+    // ── WebSocket ─────────────────────────────────────────────────────────
+    procedure HandleWebSocketUpgrade(AContext: TIdContext;
+      ARequestInfo: TIdHTTPRequestInfo);
+    class function ComputeWsAccept(const AKey: string): string; static;
 
     // ── HTML SPA ─────────────────────────────────────────────────────────
     class function BuildHtml: string; static;
@@ -117,23 +141,63 @@ implementation
 
 { TSidekiqIndyWebDashboard }
 
+{ TSidekiqWsBroadcastThread }
+
+constructor TSidekiqWsBroadcastThread.Create(
+  const AHub    : ISidekiqWebSocketHub;
+  const AGetJson: TFunc<string>);
+begin
+  inherited Create(True);
+  FHub     := AHub;
+  FGetJson := AGetJson;
+  FreeOnTerminate := False;
+end;
+
+procedure TSidekiqWsBroadcastThread.Execute;
+begin
+  while not Terminated do
+  begin
+    try
+      if FHub.ConnectedClients > 0 then
+        FHub.BroadcastMetrics(FGetJson());
+    except
+      { ignora erros de broadcast — clientes mortos são limpos internamente }
+    end;
+    Sleep(1000);
+  end;
+end;
+
+{ TSidekiqIndyWebDashboard }
+
 constructor TSidekiqIndyWebDashboard.Create(
   const AConfig: TSidekiqWebDashboardConfig);
 begin
   inherited Create;
-  FConfig    := AConfig;
-  FLock      := TCriticalSection.Create;
-  FRunning   := False;
-  FStartTime := Now;
-  FServer    := TIdHTTPServer.Create(nil);
+  FConfig             := AConfig;
+  FLock               := TCriticalSection.Create;
+  FRunning            := False;
+  FStartTime          := Now;
+  FWsHub              := TSidekiqInMemoryWebSocketHub.New;
+  FServer             := TIdHTTPServer.Create(nil);
   FServer.OnCommandGet   := HandleCommand;
   FServer.OnCommandOther := HandleCommand;
+  FWsBroadcastThread  := TSidekiqWsBroadcastThread.Create(
+    FWsHub,
+    function: string
+    begin
+      Result := HandleApiOverview;
+    end);
+  FWsBroadcastThread.Start;
 end;
 
 destructor TSidekiqIndyWebDashboard.Destroy;
 begin
   Stop;
+  FWsBroadcastThread.Terminate;
+  FWsBroadcastThread.WaitFor;
+  FWsBroadcastThread.Free;
   FServer.Free;
+  FWsHub := nil;
   FLock.Free;
   inherited;
 end;
@@ -431,6 +495,13 @@ begin
     AResponseInfo.ResponseNo  := 200;
     AResponseInfo.ContentType := 'application/json';
     AResponseInfo.ContentText := Format('{"cancelled":%d}', [LStatus]);
+    Exit;
+  end;
+
+  // GET /ws — WebSocket upgrade (RFC 6455)
+  if (LMethod = 'GET') and (LPath = '/ws') then
+  begin
+    HandleWebSocketUpgrade(AContext, ARequestInfo);
     Exit;
   end;
 
@@ -1064,6 +1135,70 @@ begin
   Result := 1;
 end;
 
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+
+{
+  Computa o valor de Sec-WebSocket-Accept conforme RFC 6455 §4.2.2:
+    accept = Base64( SHA1( key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" ) )
+}
+class function TSidekiqIndyWebDashboard.ComputeWsAccept(
+  const AKey: string): string;
+var
+  LMagic: string;
+  LHash : TBytes;
+begin
+  LMagic := AKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+  LHash  := THashSHA1.GetHashBytes(LMagic);
+  Result := TNetEncoding.Base64.EncodeBytesToString(LHash);
+end;
+
+{
+  Realiza o handshake WebSocket RFC 6455 diretamente no IOHandler Indy.
+  Após o handshake, a conexão é mantida aberta; o cliente é registrado no hub
+  e a thread mantém a conexão viva enquanto o cliente estiver conectado.
+  Dados enviados pelo cliente são lidos e descartados (dashboard é read-only).
+}
+procedure TSidekiqIndyWebDashboard.HandleWebSocketUpgrade(
+  AContext    : TIdContext;
+  ARequestInfo: TIdHTTPRequestInfo);
+var
+  LKey   : string;
+  LAccept: string;
+  LIO    : TIdIOHandler;
+begin
+  LKey := ARequestInfo.RawHeaders.Values['Sec-WebSocket-Key'];
+  if LKey.IsEmpty then
+    Exit;
+
+  LAccept := ComputeWsAccept(Trim(LKey));
+  LIO     := AContext.Connection.IOHandler;
+
+  { Envia resposta 101 Switching Protocols diretamente no socket. }
+  LIO.WriteLn('HTTP/1.1 101 Switching Protocols');
+  LIO.WriteLn('Upgrade: websocket');
+  LIO.WriteLn('Connection: Upgrade');
+  LIO.WriteLn('Sec-WebSocket-Accept: ' + LAccept);
+  LIO.WriteLn('');
+
+  { Registra no hub para receber broadcasts (passa TObject, implementação faz cast). }
+  FWsHub.RegisterClient(LIO);
+
+  { Lê e descarta frames do cliente enquanto conectado (ping/pong/close). }
+  try
+    while AContext.Connection.Connected do
+    begin
+      try
+        LIO.ReadByte;  { retorna Byte — descartado; lança exceção ao desconectar }
+      except
+        Break;
+      end;
+      Sleep(100);
+    end;
+  except
+    { Desconexão normal — não propaga. }
+  end;
+end;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 class function TSidekiqIndyWebDashboard.JsonEscape(
@@ -1167,7 +1302,7 @@ begin
     LB.Append('<a href="#locks" data-section="locks">&#128274; Locks</a>');
     LB.Append('<a href="#metrics" data-section="metrics">&#128200; M&eacute;tricas</a>');
     LB.Append('<hr style="border-color:#374151;margin:8px 16px">');
-    LB.Append('<div class="px-4 py-1 text-muted" style="font-size:0.75rem">Auto-refresh: 5s</div>');
+    LB.Append('<div class="px-4 py-1 text-muted" style="font-size:0.75rem" id="conn-status">Conectando...</div>');
     LB.Append('</nav>');
 
     // Main content area
@@ -1462,18 +1597,46 @@ begin
     LB.Append('if(SECS.indexOf(h)>=0)showSection(h);');
     LB.Append('});');
 
-    // Auto-refresh
+    // Auto-refresh: WebSocket → SSE → polling (fallback chain)
     LB.Append('(function(){');
-    LB.Append('function startPolling(){setInterval(function(){loadSection(cur);},5000);}');
-    LB.Append('if(!window.EventSource){startPolling();return;}');
-    LB.Append('var retries=0;');
+    LB.Append('var status=document.getElementById("conn-status");');
+    LB.Append('function setStatus(t){if(status)status.textContent=t;}');
+    LB.Append('function startPolling(){');
+    LB.Append('setStatus("Polling 5s");');
+    LB.Append('setInterval(function(){loadSection(cur);},5000);}');
     LB.Append('function openSSE(){');
+    LB.Append('if(!window.EventSource){startPolling();return;}');
+    LB.Append('setStatus("SSE...");');
+    LB.Append('var retries=0;');
     LB.Append('var es=new EventSource("/api/events");');
-    LB.Append('es.onmessage=function(){retries=0;loadSection(cur);};');
+    LB.Append('es.onmessage=function(){retries=0;setStatus("SSE •");loadSection(cur);};');
     LB.Append('es.onerror=function(){es.close();retries++;');
-    LB.Append('if(retries<5)setTimeout(openSSE,3000);else startPolling();};');
+    LB.Append('if(retries<5)setTimeout(openSSE,3000);else startPolling();};}');
+    LB.Append('function connectWS(){');
+    LB.Append('if(!window.WebSocket){openSSE();return;}');
+    LB.Append('setStatus("WS...");');
+    LB.Append('var wsUrl=(location.protocol==="https:"?"wss":"ws")+"://"+location.host+"/ws";');
+    LB.Append('var ws;');
+    LB.Append('try{ws=new WebSocket(wsUrl);}catch(e){openSSE();return;}');
+    LB.Append('ws.onopen=function(){setStatus("WS ●");};');
+    LB.Append('ws.onmessage=function(e){');
+    LB.Append('try{var d=JSON.parse(e.data);}catch(ex){return;}');
+    LB.Append('if(cur==="overview"){');
+    LB.Append('var h="";');
+    LB.Append('h+=mkCard("Workers Ativos",d.workers+" / "+d.max_concurrency,"primary");');
+    LB.Append('h+=mkCard("Enfileirados",d.enqueued,"info");');
+    LB.Append('h+=mkCard("Dead Letter",d.dlq_count,"danger");');
+    LB.Append('h+=mkCard("Agendados",d.scheduled_count,"warning");');
+    LB.Append('h+=mkCard("Processados",d.processed_1h,"success");');
+    LB.Append('h+=mkCard("Falhos",d.failed_1h,"danger");');
+    LB.Append('h+=mkCard("Leader",d.is_leader?"Sim":"N&atilde;o",d.is_leader?"success":"secondary");');
+    LB.Append('h+=mkCard("Draining",d.is_draining?"Sim":"N&atilde;o",d.is_draining?"warning":"secondary");');
+    LB.Append('document.getElementById("overview-cards").innerHTML=h;');
+    LB.Append('}};');
+    LB.Append('ws.onerror=function(){ws.close();};');
+    LB.Append('ws.onclose=function(){setStatus("WS reconect...");setTimeout(connectWS,3000);};');
     LB.Append('}');
-    LB.Append('openSSE();');
+    LB.Append('connectWS();');
     LB.Append('})();');
 
     // Init
