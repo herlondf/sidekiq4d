@@ -42,11 +42,42 @@ Acesse em `http://localhost:8080`.
 ## Interface web
 
 O dashboard usa Bootstrap 5 + Chart.js com:
-- Visualização em tempo real via SSE (Server-Sent Events)
+- Atualização em tempo real via **WebSocket** (push a cada 1s sem polling)
+- Fallback automático: WebSocket → SSE → polling HTTP a cada 5s
+- Indicador de status de conexão no canto da tela
 - Gráficos de throughput e taxa de erros
-- Auto-refresh sem necessidade de F5
 - Listagem de jobs agendados com opção de cancelamento
 - Inspeção de jobs na DLQ com reprocessamento individual
+
+## WebSocket real-time
+
+O endpoint `/ws` aceita conexões WebSocket (RFC 6455). O servidor faz push de métricas
+a cada 1 segundo para todos os clientes conectados.
+
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws');
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  console.log(data.queued, data.workers, data.processed_total);
+};
+```
+
+O payload enviado tem o mesmo formato do endpoint `/api/overview`:
+
+```json
+{
+  "queued": 42,
+  "workers": 4,
+  "processed_total": 1234,
+  "failed_total": 3,
+  "scheduled": 7,
+  "dlq": 0
+}
+```
+
+A SPA do dashboard detecta suporte a WebSocket automaticamente. Se a conexão
+falhar ou o navegador não suportar, ela cai para SSE (`/api/stream`) e depois
+para polling HTTP a cada 5s.
 
 ## Métricas Prometheus
 
