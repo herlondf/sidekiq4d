@@ -1,8 +1,8 @@
-# Testes e Validação
+﻿# Testes e Validação
 
 ## Suite unitária (sem broker externo)
 
-11 fixtures DUnitX em `tests/Sidekiq4D.UnitTests.dpr`. Todos usam `TSidekiqInMemoryStateStore` e `TSidekiqInMemoryQueueAdapter` — nenhum serviço externo necessário.
+11 fixtures DUnitX em `tests/Hefesto.UnitTests.dpr`. Todos usam `THefestoInMemoryStateStore` e `THefestoInMemoryQueueAdapter` — nenhum serviço externo necessário.
 
 ### Fixtures cobertas
 
@@ -24,7 +24,7 @@
 
 ```
 delphi-build sidekiq4delphi-tests
-tests\Sidekiq4D.UnitTests.Runner.exe
+tests\Hefesto.UnitTests.Runner.exe
 ```
 
 Saída esperada: todos os testes verdes, sem warnings de memory leak.
@@ -34,12 +34,12 @@ Saída esperada: todos os testes verdes, sem warnings de memory leak.
 ```pascal
 uses
   DUnitX.TestFramework,
-  Sidekiq4D.Store.InMemory;
+  Hefesto.Store.InMemory;
 
 [TestFixture('MinhaFeature')]
 TMinhaFixture = class
 private
-  FStore: ISidekiqStateStore;
+  FStore: IHefestoStateStore;
 public
   [Setup]
   procedure Setup;
@@ -53,7 +53,7 @@ end;
 
 procedure TMinhaFixture.Setup;
 begin
-  FStore := TSidekiqInMemoryStateStore.New;
+  FStore := THefestoInMemoryStateStore.New;
 end;
 
 procedure TMinhaFixture.TearDown;
@@ -69,8 +69,8 @@ end;
 
 ### Adicionando um novo teste
 
-1. Criar `tests/Sidekiq4D.<Feature>.Tests.pas`
-2. Adicionar ao runner `tests/Sidekiq4D.UnitTests.dpr`
+1. Criar `tests/Hefesto.<Feature>.Tests.pas`
+2. Adicionar ao runner `tests/Hefesto.UnitTests.dpr`
 3. Seguir o padrão de fixture acima
 
 ## Stress test de concorrência
@@ -79,7 +79,7 @@ Verifica race conditions e deadlocks sob carga.
 
 ```
 delphi-build sidekiq4delphi-threadsafety
-tests\Sidekiq4D.ThreadSafety.Tests.Runner.exe
+tests\Hefesto.ThreadSafety.Tests.Runner.exe
 ```
 
 O teste usa múltiplas threads para enfileirar e processar jobs simultaneamente, verificando consistência dos contadores e ausência de exceções de acesso concorrente.
@@ -92,14 +92,14 @@ Requer Redis local em `localhost:6379`.
 delphi-build sidekiq4delphi-redis4d-real-smoke
 ```
 
-Testa a integração completa com Redis: enfileiramento, fetch, ack, nack, DLQ e scheduled jobs usando o adapter real `TSidekiqRedis4DStateStore`.
+Testa a integração completa com Redis: enfileiramento, fetch, ack, nack, DLQ e scheduled jobs usando o adapter real `THefestoRedis4DStateStore`.
 
 ## Verificação de memory leaks
 
 Delphi detecta vazamentos automaticamente quando `ReportMemoryLeaksOnShutdown := True` está no `.dpr`:
 
 ```pascal
-program Sidekiq4D.UnitTests.Runner;
+program Hefesto.UnitTests.Runner;
 
 {$APPTYPE CONSOLE}
 

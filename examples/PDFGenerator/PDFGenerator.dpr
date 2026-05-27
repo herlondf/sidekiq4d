@@ -1,4 +1,4 @@
-program PDFGenerator;
+﻿program PDFGenerator;
 
 {$APPTYPE CONSOLE}
 
@@ -11,41 +11,41 @@ program PDFGenerator;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Batch,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Batch,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TPDFGenerateHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TPDFGenerateHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TNotifyUserHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TNotifyUserHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TPDFGenerateHandler }
 
-function TPDFGenerateHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TPDFGenerateHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'generate_pdf';
 end;
 
-procedure TPDFGenerateHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TPDFGenerateHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [PDF] Generating: %s', [AContext.Job.Body]));
   Sleep(200); // Simulate PDF rendering
@@ -54,12 +54,12 @@ end;
 
 { TNotifyUserHandler }
 
-function TNotifyUserHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TNotifyUserHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'notify_user';
 end;
 
-procedure TNotifyUserHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TNotifyUserHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn('');
   WriteLn('  *** BATCH COMPLETE ***');
@@ -68,25 +68,25 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  Server: ISidekiqServer;
-  Batch: ISidekiqBatch;
+  Queue: THefestoInMemoryQueueAdapter;
+  Server: IHefestoServer;
+  Batch: IHefestoBatch;
 begin
   try
     WriteLn('===========================================');
-    WriteLn(' Sidekiq4D Demo: PDF Generator with Batch');
+    WriteLn(' Hefesto Demo: PDF Generator with Batch');
     WriteLn('===========================================');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
-    Server := TSidekiqServer.New
+    Server := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
-      .StateStore(TSidekiqInMemoryStateStore.New)
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .StateStore(THefestoInMemoryStateStore.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('generate_pdf', TPDFGenerateHandler.Create)
       .RegisterHandler('notify_user', TNotifyUserHandler.Create);
 

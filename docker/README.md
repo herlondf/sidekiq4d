@@ -1,9 +1,9 @@
-# Sidekiq4D — Docker
+﻿# Hefesto — Docker
 
 ## Setup recomendado (desenvolvimento local)
 
 O compilador Delphi gera binários **PE para Windows** (Win32/Win64).  
-A forma mais simples de desenvolver com Sidekiq4D é rodar o **worker nativamente no Windows** e subir apenas a infraestrutura (Redis, Postgres) via Docker.
+A forma mais simples de desenvolver com Hefesto é rodar o **worker nativamente no Windows** e subir apenas a infraestrutura (Redis, Postgres) via Docker.
 
 ```bash
 # Sobe Redis + Postgres em background
@@ -29,8 +29,8 @@ Se o seu ambiente de produção suportar **Windows Containers** (Docker Desktop 
 ```dockerfile
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 WORKDIR C:\\app
-COPY bin\\Release\\SidekiqWorker.exe .
-ENTRYPOINT ["SidekiqWorker.exe"]
+COPY bin\\Release\\HefestoWorker.exe .
+ENTRYPOINT ["HefestoWorker.exe"]
 ```
 
 ```yaml

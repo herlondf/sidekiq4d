@@ -1,4 +1,4 @@
-# Receita: Servidor com Redis Streams
+﻿# Receita: Servidor com Redis Streams
 
 Requer Redis local ou remoto. Usa Redis4D via XREADGROUP para consumer groups.
 
@@ -9,22 +9,22 @@ program ServidorRedis;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.RedisStreams,
-  Sidekiq4D.Store.Redis4D,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.RedisStreams,
+  Hefesto.Store.Redis4D,
+  Hefesto.Retry,
+  Hefesto.Idempotency,
+  Hefesto.Telemetry.Console;
 
 const
   REDIS_URL = 'redis://localhost:6379';
 
 type
-  TProcessHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TProcessHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TProcessHandler.CanHandle(const AAction: string): Boolean;
@@ -32,21 +32,21 @@ begin
   Result := AAction = 'process';
 end;
 
-procedure TProcessHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TProcessHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Processando: ', AJob.Body);
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LServer: IHefestoServer;
 begin
-  LStore := TSidekiqRedis4DStateStore.New
+  LStore := THefestoRedis4DStateStore.New
     .ConnectionString(REDIS_URL);
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(
-      TSidekiqRedisStreamsAdapter.New
+      THefestoRedisStreamsAdapter.New
         .ConnectionString(REDIS_URL)
         .StreamName('sidekiq4d:jobs')
         .ConsumerGroup('workers')
@@ -55,9 +55,9 @@ begin
     )
     .Concurrency(4)
     .StateStore(LStore)
-    .Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Idempotency(THefestoStateStoreIdempotency.New(LStore))
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('process', TProcessHandler.Create)
     .Run;
 

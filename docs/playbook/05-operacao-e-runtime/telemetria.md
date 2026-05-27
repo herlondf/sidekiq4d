@@ -1,6 +1,6 @@
-# Telemetria
+﻿# Telemetria
 
-## Interface ISidekiqTelemetry
+## Interface IHefestoTelemetry
 
 13 eventos que cobrem o ciclo de vida completo do servidor e dos jobs:
 
@@ -24,21 +24,21 @@
 
 | Provider | Unit | O que faz |
 |----------|------|-----------|
-| `TSidekiqNoopTelemetry` | `Sidekiq4D.Telemetry` | Nenhuma ação (padrão) |
-| `TSidekiqConsoleTelemetry` | `Sidekiq4D.Telemetry.Console` | Imprime eventos no console |
-| `TSidekiqCompositeTelemetry` | `Sidekiq4D.Telemetry` | Encadeia múltiplos providers |
-| `TSidekiqMetricsTelemetry` | `Sidekiq4D.Telemetry.Metrics` | StatsD — contadores e timers |
-| `TSidekiqHistoricalMetricsTelemetry` | `Sidekiq4D.Telemetry.Historical` | Buckets de métricas em memória |
-| `TSidekiqOTLPTraceTelemetry` | `Sidekiq4D.Telemetry.OTLP` | Traces OpenTelemetry (Jaeger/Tempo/Honeycomb) |
+| `THefestoNoopTelemetry` | `Hefesto.Telemetry` | Nenhuma ação (padrão) |
+| `THefestoConsoleTelemetry` | `Hefesto.Telemetry.Console` | Imprime eventos no console |
+| `THefestoCompositeTelemetry` | `Hefesto.Telemetry` | Encadeia múltiplos providers |
+| `THefestoMetricsTelemetry` | `Hefesto.Telemetry.Metrics` | StatsD — contadores e timers |
+| `THefestoHistoricalMetricsTelemetry` | `Hefesto.Telemetry.Historical` | Buckets de métricas em memória |
+| `THefestoOTLPTraceTelemetry` | `Hefesto.Telemetry.OTLP` | Traces OpenTelemetry (Jaeger/Tempo/Honeycomb) |
 
 ## Composite: múltiplos providers
 
 ```pascal
 .Telemetry(
-  TSidekiqCompositeTelemetry.New([
-    TSidekiqConsoleTelemetry.New,
-    TSidekiqOTLPTraceTelemetry.New('http://localhost:4318', 'meu-servico'),
-    TSidekiqMetricsTelemetry.New('localhost', 8125)  // StatsD
+  THefestoCompositeTelemetry.New([
+    THefestoConsoleTelemetry.New,
+    THefestoOTLPTraceTelemetry.New('http://localhost:4318', 'meu-servico'),
+    THefestoMetricsTelemetry.New('localhost', 8125)  // StatsD
   ])
 )
 ```
@@ -49,10 +49,10 @@ A ordem não afeta a semântica — todos os providers recebem cada evento.
 
 ```pascal
 uses
-  Sidekiq4D.Telemetry.OTLP;
+  Hefesto.Telemetry.OTLP;
 
 .Telemetry(
-  TSidekiqOTLPTraceTelemetry.New(
+  THefestoOTLPTraceTelemetry.New(
     'http://localhost:4318',  // OTLP HTTP endpoint
     'sidekiq4d-worker'        // service.name nos traces
   )
@@ -81,29 +81,29 @@ Se os traces aparecem no Jaeger com timestamp errado, verificar este parâmetro.
 ## Console Telemetry (desenvolvimento)
 
 ```pascal
-.Telemetry(TSidekiqConsoleTelemetry.New)
+.Telemetry(THefestoConsoleTelemetry.New)
 ```
 
 Saída exemplo:
 ```
-[Sidekiq4D] ServerStarted workers=4
-[Sidekiq4D] JobStarted queue=default action=send_email id=abc123
-[Sidekiq4D] JobSucceeded queue=default action=send_email duration=142ms
-[Sidekiq4D] Idle queue=default
+[Hefesto] ServerStarted workers=4
+[Hefesto] JobStarted queue=default action=send_email id=abc123
+[Hefesto] JobSucceeded queue=default action=send_email duration=142ms
+[Hefesto] Idle queue=default
 ```
 
 ## Métricas históricas (in-memory)
 
 ```pascal
 uses
-  Sidekiq4D.Telemetry.Historical;
+  Hefesto.Telemetry.Historical;
 
 var
-  LMetrics: TSidekiqHistoricalMetricsTelemetry;
+  LMetrics: THefestoHistoricalMetricsTelemetry;
 begin
-  LMetrics := TSidekiqHistoricalMetricsTelemetry.Create;
+  LMetrics := THefestoHistoricalMetricsTelemetry.Create;
 
-  TSidekiqServer.New
+  THefestoServer.New
     .Telemetry(LMetrics)
     ...
 

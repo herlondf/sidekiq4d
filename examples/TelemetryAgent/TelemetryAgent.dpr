@@ -1,10 +1,10 @@
-program TelemetryAgent;
+﻿program TelemetryAgent;
 
 {$APPTYPE CONSOLE}
 
-// Demo: Agente de Telemetria construido sobre Sidekiq4D
+// Demo: Agente de Telemetria construido sobre Hefesto
 //
-// Substitui o AgenteTelemetria usando a infraestrutura do Sidekiq4D:
+// Substitui o AgenteTelemetria usando a infraestrutura do Hefesto:
 // - HTTP Ingress adapter (escuta POST /events e /batch)
 // - Circuit breaker middleware (por provider)
 // - Provider handlers (Elasticsearch, Datadog, OTLP)
@@ -32,35 +32,35 @@ uses
   FireDAC.DApt,
   FireDAC.Phys.SQLite,
   FireDAC.Phys.SQLiteDef,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.Postgres,
-  Sidekiq4D.Store.FireDAC,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Middleware,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server,
-  Sidekiq4D.Ingress.HTTP,
-  Sidekiq4D.Ingress.HTTP.Indy,
-  Sidekiq4D.Middleware.CircuitBreaker,
-  Sidekiq4D.Telemetry.Provider;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.Postgres,
+  Hefesto.Store.FireDAC,
+  Hefesto.Locking,
+  Hefesto.Idempotency,
+  Hefesto.Retry,
+  Hefesto.Middleware,
+  Hefesto.Dispatcher,
+  Hefesto.Telemetry,
+  Hefesto.Server,
+  Hefesto.Ingress.HTTP,
+  Hefesto.Ingress.HTTP.Indy,
+  Hefesto.Middleware.CircuitBreaker,
+  Hefesto.Telemetry.Provider;
 
 type
   // Retry policy com backoff exponencial e jitter
-  TAgentRetryPolicy = class(TInterfacedObject, ISidekiqRetryPolicy)
+  TAgentRetryPolicy = class(TInterfacedObject, IHefestoRetryPolicy)
   private
     FMaxAttempts: Integer;
   public
     constructor Create(AMaxAttempts: Integer = 5);
-    function Decide(const AJob: ISidekiqJobEnvelope;
-      const AError: Exception): TSidekiqRetryDecision;
+    function Decide(const AJob: IHefestoJobEnvelope;
+      const AError: Exception): THefestoRetryDecision;
   end;
 
 constructor TAgentRetryPolicy.Create(AMaxAttempts: Integer);
@@ -69,8 +69,8 @@ begin
   FMaxAttempts := AMaxAttempts;
 end;
 
-function TAgentRetryPolicy.Decide(const AJob: ISidekiqJobEnvelope;
-  const AError: Exception): TSidekiqRetryDecision;
+function TAgentRetryPolicy.Decide(const AJob: IHefestoJobEnvelope;
+  const AError: Exception): THefestoRetryDecision;
 var
   LDelay: Integer;
 begin
@@ -78,10 +78,10 @@ begin
   begin
     // Backoff: 5s, 10s, 20s, 40s, 80s + jitter
     LDelay := 5 * Round(Power(2, AJob.Attempts)) + Random(5);
-    Result := TSidekiqRetryDecision.Retry(LDelay, AError.Message);
+    Result := THefestoRetryDecision.Retry(LDelay, AError.Message);
   end
   else
-    Result := TSidekiqRetryDecision.DeadLetter(
+    Result := THefestoRetryDecision.DeadLetter(
       Format('Quarentena apos %d tentativas: %s', [FMaxAttempts, AError.Message]));
 end;
 
@@ -91,14 +91,14 @@ const
   DB_FILE     = 'telemetry_agent.db';
 
 var
-  Ingress: TSidekiqHTTPIngressAdapter;
-  CircuitBreaker: TSidekiqCircuitBreakerMiddleware;
+  Ingress: THefestoHTTPIngressAdapter;
+  CircuitBreaker: THefestoCircuitBreakerMiddleware;
   Connection: TFDConnection;
-  StateStore: ISidekiqStateStore;
+  StateStore: IHefestoStateStore;
 begin
   try
     WriteLn('=================================================');
-    WriteLn('  Sidekiq4D Telemetry Agent');
+    WriteLn('  Hefesto Telemetry Agent');
     WriteLn('  Escutando em http://' + LISTEN_HOST + ':' + IntToStr(LISTEN_PORT));
     WriteLn('=================================================');
     WriteLn('');
@@ -120,26 +120,26 @@ begin
     WriteLn('-------------------------------------------------');
 
     // --- HTTP Ingress ---
-    Ingress := TSidekiqHTTPIngressAdapter.New
+    Ingress := THefestoHTTPIngressAdapter.New
       .Host(LISTEN_HOST)
       .Port(LISTEN_PORT)
       .Targets(['elasticsearch', 'datadog', 'otlp'])
-      .UseHTTPServer(TSidekiqIndyHTTPServer.New);
+      .UseHTTPServer(THefestoIndyHTTPServer.New);
 
     // --- Circuit Breaker ---
-    CircuitBreaker := TSidekiqCircuitBreakerMiddleware.New
+    CircuitBreaker := THefestoCircuitBreakerMiddleware.New
       .FailureThreshold(5)
       .CooldownSeconds(60);
 
     // --- State Store SQLite ---
-    Connection := TSidekiqFireDACBackend.NewSQLiteConnection(DB_FILE);
+    Connection := THefestoFireDACBackend.NewSQLiteConnection(DB_FILE);
 
-    StateStore := TSidekiqPostgresStateStore.New
-      .Backend(TSidekiqFireDACBackend.New(Connection, True))
+    StateStore := THefestoPostgresStateStore.New
+      .Backend(THefestoFireDACBackend.New(Connection, True))
       .TableName('agent_state');
 
     // --- Servidor ---
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Ingress)
       .Concurrency(4)
       .BatchSize(20)
@@ -147,8 +147,8 @@ begin
 
       // Providers
       .StateStore(StateStore)
-      .LockProvider(TSidekiqInMemoryLockProvider.New(StateStore))
-      .Idempotency(TSidekiqStateStoreIdempotency.New(StateStore))
+      .LockProvider(THefestoInMemoryLockProvider.New(StateStore))
+      .Idempotency(THefestoStateStoreIdempotency.New(StateStore))
 
       // Circuit breaker como middleware
       .UseServerMiddleware(CircuitBreaker)
@@ -157,15 +157,15 @@ begin
       .RetryPolicy(TAgentRetryPolicy.Create(5))
 
       // Telemetry
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
 
       // Provider handlers (cada um processa sua action)
       .RegisterHandler('elasticsearch',
-        TSidekiqElasticsearchHandler.New('http://localhost:9200', 'telemetry-events'))
+        THefestoElasticsearchHandler.New('http://localhost:9200', 'telemetry-events'))
       .RegisterHandler('datadog',
-        TSidekiqDatadogHandler.New('https://http-intake.logs.datadoghq.com', 'YOUR_DD_API_KEY'))
+        THefestoDatadogHandler.New('https://http-intake.logs.datadoghq.com', 'YOUR_DD_API_KEY'))
       .RegisterHandler('otlp',
-        TSidekiqOTLPHandler.New('http://localhost:4318'))
+        THefestoOTLPHandler.New('http://localhost:4318'))
 
       .Run;
 

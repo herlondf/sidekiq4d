@@ -1,10 +1,10 @@
-# O que é o Sidekiq4D
+﻿# O que é o Hefesto
 
-Sidekiq4D é um framework Delphi para processamento assíncrono de jobs, inspirado no Sidekiq do ecossistema Ruby. Resolve o problema de executar trabalho pesado fora do ciclo request/response sem depender de um broker externo obrigatório.
+Hefesto é um framework Delphi para processamento assíncrono de jobs, inspirado no Hefesto do ecossistema Ruby. Resolve o problema de executar trabalho pesado fora do ciclo request/response sem depender de um broker externo obrigatório.
 
 ## Motivação
 
-Aplicações Delphi que precisam de processamento assíncrono geralmente recorrem a threads manuais, timers ou filas proprietárias de ORMs. Sidekiq4D oferece uma camada de abstração completa:
+Aplicações Delphi que precisam de processamento assíncrono geralmente recorrem a threads manuais, timers ou filas proprietárias de ORMs. Hefesto oferece uma camada de abstração completa:
 
 - API fluente e declarativa
 - Plugável: troque de broker sem mudar a lógica de negócio
@@ -19,7 +19,7 @@ Aplicações Delphi que precisam de processamento assíncrono geralmente recorre
 
 ## Comparação rápida
 
-| Critério | Thread manual | Timer + DB | Sidekiq4D |
+| Critério | Thread manual | Timer + DB | Hefesto |
 |----------|--------------|------------|-----------|
 | Retry automático | Não | Manual | Sim |
 | Dead letter queue | Não | Manual | Sim |

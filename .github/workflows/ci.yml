@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -23,9 +23,9 @@ jobs:
         shell: bash
         run: |
           echo "=== Validating project structure ==="
-          test -f src/Sidekiq4D.Server.pas || (echo "FAIL: src/Sidekiq4D.Server.pas not found" && exit 1)
-          test -f src/Sidekiq4D.Job.pas || (echo "FAIL: src/Sidekiq4D.Job.pas not found" && exit 1)
-          test -f tests/Sidekiq4D.Tests.dpr || (echo "FAIL: tests/Sidekiq4D.Tests.dpr not found" && exit 1)
+          test -f src/Hefesto.Server.pas || (echo "FAIL: src/Hefesto.Server.pas not found" && exit 1)
+          test -f src/Hefesto.Job.pas || (echo "FAIL: src/Hefesto.Job.pas not found" && exit 1)
+          test -f tests/Hefesto.Tests.dpr || (echo "FAIL: tests/Hefesto.Tests.dpr not found" && exit 1)
           echo "Structure OK"
           echo "Source units: $(find src -name '*.pas' | wc -l)"
           echo "Adapter units: $(find src/adapters -name '*.pas' | wc -l)"
@@ -41,7 +41,7 @@ jobs:
       - name: Run unit tests
         shell: bash
         run: |
-          tests/bin/Debug/Sidekiq4D.Tests.exe
+          tests/bin/Debug/Hefesto.Tests.exe
           echo "Tests OK"
 
       - name: Build examples (smoke)
@@ -78,15 +78,15 @@ jobs:
           BAD=0
           for f in $(find src -name '*.pas' -not -path '*/vendor/*'); do
             basename=$(basename "$f" .pas)
-            if [[ ! "$basename" =~ ^Sidekiq4D\. ]]; then
-              echo "WARN: $f does not follow Sidekiq4D.* naming"
+            if [[ ! "$basename" =~ ^Hefesto\. ]]; then
+              echo "WARN: $f does not follow Hefesto.* naming"
               BAD=1
             fi
           done
           if [ $BAD -eq 1 ]; then
             echo "Some units don't follow naming convention"
           else
-            echo "All units follow Sidekiq4D.* naming convention"
+            echo "All units follow Hefesto.* naming convention"
           fi
 
       - name: Check for debug artifacts

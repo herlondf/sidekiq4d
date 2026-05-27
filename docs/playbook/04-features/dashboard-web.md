@@ -1,14 +1,14 @@
-# Dashboard Web
+﻿# Dashboard Web
 
-Interface web para monitoramento e gestão do servidor Sidekiq4D em tempo real.
+Interface web para monitoramento e gestão do servidor Hefesto em tempo real.
 
 ## Iniciando
 
 ```pascal
 uses
-  Sidekiq4D.Dashboard;
+  Hefesto.Dashboard;
 
-TSidekiqWebDashboard.New
+THefestoWebDashboard.New
   .Port(8080)
   .Start;
 ```
@@ -112,7 +112,7 @@ cd docker && docker-compose up -d jaeger
 
 Configurar o servidor para enviar traces:
 ```pascal
-.Telemetry(TSidekiqOTLPTraceTelemetry.New(
+.Telemetry(THefestoOTLPTraceTelemetry.New(
   'http://localhost:4318',  // endpoint OTLP
   'meu-servico'             // service name
 ))

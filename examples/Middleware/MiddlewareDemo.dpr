@@ -1,4 +1,4 @@
-program MiddlewareDemo;
+﻿program MiddlewareDemo;
 
 {$APPTYPE CONSOLE}
 
@@ -12,46 +12,46 @@ uses
   System.SysUtils,
   System.Classes,
   System.Diagnostics,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Middleware,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Middleware,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
   // Middleware client: loga antes de publicar
-  TLoggingClientMiddleware = class(TInterfacedObject, ISidekiqClientMiddleware)
+  TLoggingClientMiddleware = class(TInterfacedObject, IHefestoClientMiddleware)
     procedure Call(const AQueueName, AAction, ABody: string;
-      const AAttributes: TStrings; const ANext: TSidekiqNextProc);
+      const AAttributes: TStrings; const ANext: THefestoNextProc);
   end;
 
   // Middleware server: mede tempo de execucao
-  TTimingServerMiddleware = class(TInterfacedObject, ISidekiqServerMiddleware)
-    procedure Call(const AQueue: ISidekiqQueueAdapter;
-      const AJob: ISidekiqJobEnvelope; const ANext: TSidekiqNextProc);
+  TTimingServerMiddleware = class(TInterfacedObject, IHefestoServerMiddleware)
+    procedure Call(const AQueue: IHefestoQueueAdapter;
+      const AJob: IHefestoJobEnvelope; const ANext: THefestoNextProc);
   end;
 
   // Middleware server: valida payload
-  TValidationServerMiddleware = class(TInterfacedObject, ISidekiqServerMiddleware)
-    procedure Call(const AQueue: ISidekiqQueueAdapter;
-      const AJob: ISidekiqJobEnvelope; const ANext: TSidekiqNextProc);
+  TValidationServerMiddleware = class(TInterfacedObject, IHefestoServerMiddleware)
+    procedure Call(const AQueue: IHefestoQueueAdapter;
+      const AJob: IHefestoJobEnvelope; const ANext: THefestoNextProc);
   end;
 
-  TWorkerHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TWorkerHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TLoggingClientMiddleware }
 
 procedure TLoggingClientMiddleware.Call(const AQueueName, AAction, ABody: string;
-  const AAttributes: TStrings; const ANext: TSidekiqNextProc);
+  const AAttributes: TStrings; const ANext: THefestoNextProc);
 begin
   WriteLn(Format('  [client-mw] Publicando: queue=%s action=%s',
     [AQueueName, AAction]));
@@ -60,8 +60,8 @@ end;
 
 { TTimingServerMiddleware }
 
-procedure TTimingServerMiddleware.Call(const AQueue: ISidekiqQueueAdapter;
-  const AJob: ISidekiqJobEnvelope; const ANext: TSidekiqNextProc);
+procedure TTimingServerMiddleware.Call(const AQueue: IHefestoQueueAdapter;
+  const AJob: IHefestoJobEnvelope; const ANext: THefestoNextProc);
 var
   LWatch: TStopwatch;
 begin
@@ -74,8 +74,8 @@ end;
 
 { TValidationServerMiddleware }
 
-procedure TValidationServerMiddleware.Call(const AQueue: ISidekiqQueueAdapter;
-  const AJob: ISidekiqJobEnvelope; const ANext: TSidekiqNextProc);
+procedure TValidationServerMiddleware.Call(const AQueue: IHefestoQueueAdapter;
+  const AJob: IHefestoJobEnvelope; const ANext: THefestoNextProc);
 begin
   if AJob.Body.IsEmpty then
   begin
@@ -87,12 +87,12 @@ end;
 
 { TWorkerHandler }
 
-function TWorkerHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TWorkerHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := True; // aceita qualquer action
 end;
 
-procedure TWorkerHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TWorkerHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [handler] Processando: %s -> %s',
     [AContext.Job.Action, AContext.Job.Body]));
@@ -100,13 +100,13 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
+  Queue: THefestoInMemoryQueueAdapter;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Middleware Pipeline');
+    WriteLn('Hefesto - Demo Middleware Pipeline');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
     // Enfileira jobs diretamente (bypass client middleware para demonstracao)
     Queue.Enqueue('processar', '{"pedido":1}');
@@ -119,7 +119,7 @@ begin
     WriteLn('');
 
     WriteLn('--- Processando ---');
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)

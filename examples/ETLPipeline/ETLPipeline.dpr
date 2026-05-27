@@ -1,4 +1,4 @@
-program ETLPipeline;
+﻿program ETLPipeline;
 
 {$APPTYPE CONSOLE}
 
@@ -9,53 +9,53 @@ program ETLPipeline;
 // - Stage 2 (Transform): Processes data, enqueues load jobs
 // - Stage 3 (Load): Writes to destination
 // - Uses EnqueueIn for inter-stage delays (simulating real pipelines)
-// - Shows how to build multi-step workflows with Sidekiq4D
+// - Shows how to build multi-step workflows with Hefesto
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 var
-  GServer: ISidekiqServer;
+  GServer: IHefestoServer;
 
 type
-  TExtractHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TExtractHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TTransformHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TTransformHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TLoadHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TLoadHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TExtractHandler }
 
-function TExtractHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TExtractHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'etl_extract';
 end;
 
-procedure TExtractHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TExtractHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [EXTRACT] Reading source: %s', [AContext.Job.Body]));
   Sleep(100); // Simulate reading from source
@@ -68,12 +68,12 @@ end;
 
 { TTransformHandler }
 
-function TTransformHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TTransformHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'etl_transform';
 end;
 
-procedure TTransformHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TTransformHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [TRANSFORM] Processing: %s', [AContext.Job.Body]));
   Sleep(100); // Simulate data transformation
@@ -86,12 +86,12 @@ end;
 
 { TLoadHandler }
 
-function TLoadHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TLoadHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'etl_load';
 end;
 
-procedure TLoadHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TLoadHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [LOAD] Writing to destination: %s', [AContext.Job.Body]));
   Sleep(100); // Simulate writing to destination database
@@ -99,11 +99,11 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
+  Queue: THefestoInMemoryQueueAdapter;
 begin
   try
     WriteLn('===========================================');
-    WriteLn(' Sidekiq4D Demo: ETL Pipeline');
+    WriteLn(' Hefesto Demo: ETL Pipeline');
     WriteLn('===========================================');
     WriteLn('');
     WriteLn('Pipeline stages:');
@@ -111,7 +111,7 @@ begin
     WriteLn('  (each stage enqueues the next with delay)');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
     // Seed the pipeline with extract jobs
     Queue.Enqueue('etl_extract', '{"table":"customers","db":"production"}');
@@ -123,14 +123,14 @@ begin
     WriteLn('--- Processing pipeline ---');
     WriteLn('');
 
-    GServer := TSidekiqServer.New
+    GServer := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(100)
       .StopWhenIdle
-      .StateStore(TSidekiqInMemoryStateStore.New)
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(2, 3))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .StateStore(THefestoInMemoryStateStore.New)
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(2, 3))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('etl_extract', TExtractHandler.Create)
       .RegisterHandler('etl_transform', TTransformHandler.Create)
       .RegisterHandler('etl_load', TLoadHandler.Create);

@@ -1,4 +1,4 @@
-# Job Graph (DAG)
+﻿# Job Graph (DAG)
 
 Executa jobs com dependências declaradas, formando um grafo acíclico dirigido (DAG). Nós sem dependências pendentes executam em paralelo.
 
@@ -14,9 +14,9 @@ Neste exemplo, `transform` só inicia após `extract` concluir, e `load` só ap�
 
 ```pascal
 uses
-  Sidekiq4D.Graph;
+  Hefesto.Graph;
 
-TSidekiqJobGraph.New
+THefestoJobGraph.New
   .Node('extract',   TExtractJob.Create)
   .Node('transform', TTransformJob.Create).DependsOn('extract')
   .Node('load',      TLoadJob.Create).DependsOn('transform')
@@ -33,7 +33,7 @@ ingest ───┤                ├──► merge ──► export
 ```
 
 ```pascal
-TSidekiqJobGraph.New
+THefestoJobGraph.New
   .Node('ingest',      TIngestJob.Create)
   .Node('normalize_a', TNormalizeAJob.Create).DependsOn('ingest')
   .Node('normalize_b', TNormalizeBJob.Create).DependsOn('ingest')
@@ -58,13 +58,13 @@ TSidekiqJobGraph.New
 
 ## Handlers de nó
 
-Cada nó usa um `ISidekiqJobHandler` normal. O grafo gerencia a orquestração:
+Cada nó usa um `IHefestoJobHandler` normal. O grafo gerencia a orquestração:
 
 ```pascal
-TExtractJob = class(TInterfacedObject, ISidekiqJobHandler)
+TExtractJob = class(TInterfacedObject, IHefestoJobHandler)
 public
   function CanHandle(const AAction: string): Boolean;
-  procedure Execute(const AJob: ISidekiqJobEnvelope);
+  procedure Execute(const AJob: IHefestoJobEnvelope);
 end;
 
 function TExtractJob.CanHandle(const AAction: string): Boolean;
@@ -72,7 +72,7 @@ begin
   Result := AAction = 'extract';
 end;
 
-procedure TExtractJob.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TExtractJob.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // extrai dados e pode gravar resultado para uso nos nós seguintes
   // use StateStore para passar dados entre nós, se necessário

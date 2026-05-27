@@ -1,4 +1,4 @@
-# Outbox Pattern
+﻿# Outbox Pattern
 
 Garante que mensagens sejam publicadas de forma confiável junto com operações de banco de dados, evitando o problema de "gravar no banco mas falhar ao publicar na fila" (ou vice-versa).
 
@@ -11,12 +11,12 @@ O Outbox Pattern consiste em:
 
 Isso garante entrega at-least-once com consistência transacional.
 
-## Interface ISidekiqClientOutbox
+## Interface IHefestoClientOutbox
 
 ```pascal
-ISidekiqClientOutbox = interface
-  procedure Save(const ARequest: TSidekiqPublishRequest);
-  function Entries: TArray<TSidekiqOutboxEntry>;
+IHefestoClientOutbox = interface
+  procedure Save(const ARequest: THefestoPublishRequest);
+  function Entries: TArray<THefestoOutboxEntry>;
   procedure Remove(const AEntryId: string);
   procedure Clear;
   function Count: Integer;
@@ -27,13 +27,13 @@ end;
 
 ```pascal
 uses
-  Sidekiq4D.Outbox;
+  Hefesto.Outbox;
 
 var
-  LOutbox: ISidekiqClientOutbox;
-  LRequest: TSidekiqPublishRequest;
+  LOutbox: IHefestoClientOutbox;
+  LRequest: THefestoPublishRequest;
 begin
-  LOutbox := TSidekiqStateStoreOutbox.New(LStore);
+  LOutbox := THefestoStateStoreOutbox.New(LStore);
 
   // Dentro da transação de negócio:
   LRequest.Queue := 'notifications';
@@ -78,6 +78,6 @@ LOutbox.Clear;
 
 ## Persistência
 
-Usar `TSidekiqInMemoryStateStore` para o outbox implica perda de mensagens ao reiniciar. Para garantias transacionais reais, use `TSidekiqPostgreSQLStateStore` ou `TSidekiqFireDACStateStore` com SQLite, pois permitem participar da mesma transação de banco.
+Usar `THefestoInMemoryStateStore` para o outbox implica perda de mensagens ao reiniciar. Para garantias transacionais reais, use `THefestoPostgreSQLStateStore` ou `THefestoFireDACStateStore` com SQLite, pois permitem participar da mesma transação de banco.
 
 Ver receita em [06-receitas/outbox.md](../06-receitas/outbox.md).

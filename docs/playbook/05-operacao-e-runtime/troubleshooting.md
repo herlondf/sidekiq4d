@@ -1,4 +1,4 @@
-# Troubleshooting
+﻿# Troubleshooting
 
 ## Handler não é chamado
 
@@ -27,7 +27,7 @@ Assert(TMyHandler.Create.CanHandle('minha_action'));
 
 **Solução:** ativar idempotência:
 ```pascal
-.Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
+.Idempotency(THefestoStateStoreIdempotency.New(LStore))
 ```
 
 Ver [idempotency.md](../04-features/idempotency.md).
@@ -38,7 +38,7 @@ Ver [idempotency.md](../04-features/idempotency.md).
 
 **Sintoma:** HTTP Ingress retorna erro ou timeout ao receber novos jobs.
 
-**Causa:** `TThreadedQueue<ISidekiqJobEnvelope>` interno chegou à capacidade máxima.
+**Causa:** `TThreadedQueue<IHefestoJobEnvelope>` interno chegou à capacidade máxima.
 
 **Solução:** aumentar capacidade e/ou `PushTimeoutMs` no construtor do adapter, e/ou aumentar `.Concurrency(N)` para processar mais rápido.
 
@@ -50,10 +50,10 @@ Ver [idempotency.md](../04-features/idempotency.md).
 
 **Causa:** `LockProvider` configurado com InMemory — não compartilha estado entre processos.
 
-**Solução:** usar `TSidekiqRedis4DLockProvider`:
+**Solução:** usar `THefestoRedis4DLockProvider`:
 ```pascal
 .LockProvider(
-  TSidekiqRedis4DLockProvider.New
+  THefestoRedis4DLockProvider.New
     .ConnectionString('redis://host:6379')
 )
 .UseLeaderElection
@@ -83,7 +83,7 @@ Ver [idempotency.md](../04-features/idempotency.md).
 
 **Causas e soluções:**
 
-1. **ScheduledStore não configurado:** o servidor precisa de um `ISidekiqScheduledStore` ativo
+1. **ScheduledStore não configurado:** o servidor precisa de um `IHefestoScheduledStore` ativo
 2. **Scheduler não rodando:** verificar configuração do servidor
 3. **Timezone:** o `DueAt` usa horário local da máquina; verificar se o horário do servidor está correto
 4. **PopDue retorna vazio:** o `DueAt` pode estar no futuro relativo ao horário da máquina
@@ -100,7 +100,7 @@ for var Entry in LList do
 
 ## Memory leaks ao fechar
 
-**Sintoma:** FastMM reporta leaks de objetos Sidekiq4D.
+**Sintoma:** FastMM reporta leaks de objetos Hefesto.
 
 **Causas comuns:**
 
@@ -111,11 +111,11 @@ for var Entry in LList do
 **Solução:** sempre atribuir adapters e stores a variáveis de interface:
 ```pascal
 var
-  LStore: ISidekiqStateStore;  // interface, não objeto
-  LServer: ISidekiqServer;     // interface, não objeto
+  LStore: IHefestoStateStore;  // interface, não objeto
+  LServer: IHefestoServer;     // interface, não objeto
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LServer := TSidekiqServer.New...
+  LStore := THefestoInMemoryStateStore.New;
+  LServer := THefestoServer.New...
   // ao sair do bloco, interfaces são liberadas automaticamente
 end;
 ```
@@ -126,6 +126,6 @@ end;
 
 **Sintoma:** jobs que estavam na fila antes do restart não são processados.
 
-**Causa:** `TSidekiqInMemoryQueueAdapter` — dados em memória são perdidos ao reiniciar.
+**Causa:** `THefestoInMemoryQueueAdapter` — dados em memória são perdidos ao reiniciar.
 
 **Solução:** usar adapter com persistência (Redis, SQS, RabbitMQ) para jobs que precisam sobreviver a restarts.

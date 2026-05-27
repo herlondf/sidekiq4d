@@ -1,4 +1,4 @@
-# Receita: Outbox Pattern
+﻿# Receita: Outbox Pattern
 
 Publicar mensagens de forma confiável junto com uma operação de banco de dados.
 
@@ -9,35 +9,35 @@ program OutboxPattern;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Outbox,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Outbox,
+  Hefesto.Telemetry.Console;
 
 type
-  TRelayHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TRelayHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
-    FOutbox: ISidekiqClientOutbox;
-    FQueue: ISidekiqQueueAdapter;
+    FOutbox: IHefestoClientOutbox;
+    FQueue: IHefestoQueueAdapter;
   public
     constructor Create(
-      const AOutbox: ISidekiqClientOutbox;
-      const AQueue: ISidekiqQueueAdapter);
+      const AOutbox: IHefestoClientOutbox;
+      const AQueue: IHefestoQueueAdapter);
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TProcessarPedidoHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TProcessarPedidoHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 constructor TRelayHandler.Create(
-  const AOutbox: ISidekiqClientOutbox;
-  const AQueue: ISidekiqQueueAdapter);
+  const AOutbox: IHefestoClientOutbox;
+  const AQueue: IHefestoQueueAdapter);
 begin
   inherited Create;
   FOutbox := AOutbox;
@@ -49,10 +49,10 @@ begin
   Result := AAction = 'relay_outbox';
 end;
 
-procedure TRelayHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TRelayHandler.Execute(const AJob: IHefestoJobEnvelope);
 var
-  LEntries: TArray<TSidekiqOutboxEntry>;
-  LEntry: TSidekiqOutboxEntry;
+  LEntries: TArray<THefestoOutboxEntry>;
+  LEntry: THefestoOutboxEntry;
 begin
   LEntries := FOutbox.Entries;
   Writeln(Format('[relay] %d entradas pendentes no outbox', [Length(LEntries)]));
@@ -75,7 +75,7 @@ begin
   Result := AAction = 'processar_pedido';
 end;
 
-procedure TProcessarPedidoHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TProcessarPedidoHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Processando pedido: ', AJob.Body);
 end;
@@ -83,10 +83,10 @@ end;
 // --- Simulação de escrita transacional ---
 
 procedure CriarPedidoComOutbox(
-  const AOutbox: ISidekiqClientOutbox;
+  const AOutbox: IHefestoClientOutbox;
   const APedidoId: Integer);
 var
-  LRequest: TSidekiqPublishRequest;
+  LRequest: THefestoPublishRequest;
 begin
   // Em produção: dentro de uma transação de banco
 
@@ -104,20 +104,20 @@ begin
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LOutbox: ISidekiqClientOutbox;
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LOutbox: IHefestoClientOutbox;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LOutbox := TSidekiqStateStoreOutbox.New(LStore);
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LStore := THefestoInMemoryStateStore.New;
+  LOutbox := THefestoStateStoreOutbox.New(LStore);
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(2)
     .StateStore(LStore)
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('relay_outbox',     TRelayHandler.Create(LOutbox, LQueue))
     .RegisterHandler('processar_pedido', TProcessarPedidoHandler.Create)
     .Run;
@@ -138,7 +138,7 @@ end.
 **Relay como job periódico (produção):**
 ```pascal
 // Registrar relay para rodar a cada 30 segundos
-TSidekiqPeriodicJob.Register(
+THefestoPeriodicJob.Register(
   'relay_outbox', '*/1 * * * *',  // a cada minuto
   'default', '{}', LScheduledStore
 );

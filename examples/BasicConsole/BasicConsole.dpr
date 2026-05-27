@@ -1,52 +1,52 @@
-program BasicConsole;
+﻿program BasicConsole;
 
 {$APPTYPE CONSOLE}
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job in '..\..\src\Sidekiq4D.Job.pas',
-  Sidekiq4D.Context in '..\..\src\Sidekiq4D.Context.pas',
-  Sidekiq4D.Handler in '..\..\src\Sidekiq4D.Handler.pas',
-  Sidekiq4D.Options in '..\..\src\Sidekiq4D.Options.pas',
-  Sidekiq4D.Queue.Interfaces in '..\..\src\Sidekiq4D.Queue.Interfaces.pas',
-  Sidekiq4D.Queue.InMemory in '..\..\src\Sidekiq4D.Queue.InMemory.pas',
-  Sidekiq4D.Dispatcher in '..\..\src\Sidekiq4D.Dispatcher.pas',
-  Sidekiq4D.Retry in '..\..\src\Sidekiq4D.Retry.pas',
-  Sidekiq4D.Telemetry in '..\..\src\Sidekiq4D.Telemetry.pas',
-  Sidekiq4D.Server in '..\..\src\Sidekiq4D.Server.pas';
+  Hefesto.Job in '..\..\src\Hefesto.Job.pas',
+  Hefesto.Context in '..\..\src\Hefesto.Context.pas',
+  Hefesto.Handler in '..\..\src\Hefesto.Handler.pas',
+  Hefesto.Options in '..\..\src\Hefesto.Options.pas',
+  Hefesto.Queue.Interfaces in '..\..\src\Hefesto.Queue.Interfaces.pas',
+  Hefesto.Queue.InMemory in '..\..\src\Hefesto.Queue.InMemory.pas',
+  Hefesto.Dispatcher in '..\..\src\Hefesto.Dispatcher.pas',
+  Hefesto.Retry in '..\..\src\Hefesto.Retry.pas',
+  Hefesto.Telemetry in '..\..\src\Hefesto.Telemetry.pas',
+  Hefesto.Server in '..\..\src\Hefesto.Server.pas';
 
 type
-  TEmailJobHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TEmailJobHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TEmailJobHandler }
 
-function TEmailJobHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TEmailJobHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'email';
 end;
 
-procedure TEmailJobHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TEmailJobHandler.Perform(const AContext: IHefestoJobContext);
 begin
   Writeln('Handling email job: ' + AContext.Job.Body);
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
+  Queue: THefestoInMemoryQueueAdapter;
 begin
   try
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
     Queue.Enqueue('email', '{"to":"user@example.com"}');
 
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('email', TEmailJobHandler.Create)
       .Run;
   except

@@ -1,4 +1,4 @@
-# Receita: Job Graph (DAG)
+﻿# Receita: Job Graph (DAG)
 
 Pipeline ETL com dependências declaradas e execução paralela onde possível.
 
@@ -9,38 +9,38 @@ program JobGraphDAG;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Graph,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Graph,
+  Hefesto.Telemetry.Console;
 
 // --- Handlers ---
 
 type
-  TExtractHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TExtractHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TTransformHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TTransformHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TLoadHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TLoadHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TExtractHandler.CanHandle(const AAction: string): Boolean;
 begin Result := AAction = 'extract'; end;
 
-procedure TExtractHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TExtractHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('[extract] Extraindo dados...');
   Sleep(200);
@@ -49,7 +49,7 @@ end;
 function TTransformHandler.CanHandle(const AAction: string): Boolean;
 begin Result := AAction = 'transform'; end;
 
-procedure TTransformHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TTransformHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('[transform] Transformando dados...');
   Sleep(300);
@@ -58,7 +58,7 @@ end;
 function TLoadHandler.CanHandle(const AAction: string): Boolean;
 begin Result := AAction = 'load'; end;
 
-procedure TLoadHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TLoadHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('[load] Carregando no destino...');
   Sleep(150);
@@ -67,16 +67,16 @@ end;
 // --- Main ---
 
 var
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
 begin
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(4)
-    .StateStore(TSidekiqInMemoryStateStore.New)
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .StateStore(THefestoInMemoryStateStore.New)
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('extract',   TExtractHandler.Create)
     .RegisterHandler('transform', TTransformHandler.Create)
     .RegisterHandler('load',      TLoadHandler.Create)
@@ -84,7 +84,7 @@ begin
 
   // Definir e executar o grafo
   // extract → transform → load (sequencial)
-  TSidekiqJobGraph.New
+  THefestoJobGraph.New
     .Node('extract',   TExtractHandler.Create)
     .Node('transform', TTransformHandler.Create).DependsOn('extract')
     .Node('load',      TLoadHandler.Create).DependsOn('transform')
@@ -100,7 +100,7 @@ end.
 
 ```pascal
 // ingest → [normalize_a, normalize_b] → merge → export
-TSidekiqJobGraph.New
+THefestoJobGraph.New
   .Node('ingest',      TIngestHandler.Create)
   .Node('normalize_a', TNormalizeAHandler.Create).DependsOn('ingest')
   .Node('normalize_b', TNormalizeBHandler.Create).DependsOn('ingest')

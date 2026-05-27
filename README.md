@@ -1,7 +1,7 @@
-# Sidekiq4D
+﻿# Hefesto
 
 <p align="center">
-  <img src="docs/logo.png" alt="Sidekiq4D" width="280">
+  <img src="docs/logo.png" alt="Hefesto" width="280">
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/herlondf/sidekiq4d/releases"><img src="https://img.shields.io/github/v/release/herlondf/sidekiq4d?style=flat-square&color=blue" alt="Release"></a>
+  <a href="https://github.com/herlondf/hefesto/releases"><img src="https://img.shields.io/github/v/release/herlondf/hefesto?style=flat-square&color=blue" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"></a>
   <a href="https://www.embarcadero.com/products/delphi"><img src="https://img.shields.io/badge/Delphi-11%2B-red?style=flat-square" alt="Delphi 11+"></a>
   <a href="#queue-adapters"><img src="https://img.shields.io/badge/adapters-9%20brokers-purple?style=flat-square" alt="9 Adapters"></a>
@@ -18,7 +18,7 @@
 
 ---
 
-Sidekiq4D is a Delphi framework for processing jobs asynchronously, reliably
+Hefesto is a Delphi framework for processing jobs asynchronously, reliably
 and efficiently. It replaces manual queue polling loops with a declarative,
 fluent API that handles concurrency, retry, observability and lifecycle — so
 you focus on business logic, not plumbing.
@@ -28,7 +28,7 @@ you focus on business logic, not plumbing.
 Real-world benchmark consuming 200 SQS messages via LocalStack, each job
 performing 50ms of simulated work:
 
-| | Manual loop | Sidekiq4D | Improvement |
+| | Manual loop | Hefesto | Improvement |
 |---|:---:|:---:|:---:|
 | **Throughput** | 3.6 jobs/s | **15.1 jobs/s** | **4.2x** |
 | **Total time** | 56.1s | **13.2s** | **4.3x faster** |
@@ -39,7 +39,7 @@ performing 50ms of simulated work:
 
 > The manual loop pattern (`Get(1)` + `Sleep(15s)`) represents the actual
 > consumption strategy found in production Delphi SQS workers.
-> Sidekiq4D's improvement comes from batching, concurrency, and long-polling —
+> Hefesto's improvement comes from batching, concurrency, and long-polling —
 > with zero changes to the job handler itself.
 
 ## Getting Started
@@ -49,7 +49,7 @@ performing 50ms of simulated work:
 Clone and add `src/` to your Delphi project search path:
 
 ```
-git clone https://github.com/herlondf/sidekiq4d.git
+git clone https://github.com/herlondf/hefesto.git
 ```
 
 ```
@@ -60,12 +60,12 @@ Search path: sidekiq4d\src\
 
 ```pascal
 type
-  TEmailHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TEmailHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-procedure TEmailHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TEmailHandler.Perform(const AContext: IHefestoJobContext);
 begin
   SendEmail(AContext.Job.Body);
 end;
@@ -74,12 +74,12 @@ end;
 ### 3. Configure and run
 
 ```pascal
-TSidekiqServer.New
+THefestoServer.New
   .UseQueue(MySQSAdapter)
   .Concurrency(4)
   .BatchSize(10)
-  .RetryPolicy(TSidekiqSimpleRetryPolicy.New(5, 30))
-  .Telemetry(TSidekiqConsoleTelemetry.New)
+  .RetryPolicy(THefestoSimpleRetryPolicy.New(5, 30))
+  .Telemetry(THefestoConsoleTelemetry.New)
   .RegisterHandler('send_email', TEmailHandler.Create)
   .Run;
 ```
@@ -112,7 +112,7 @@ Optional (adapter-specific):
 | **TCP** | Indy or Synapse | Legacy Delphi apps, IoT |
 
 All adapters use **HTTP only** — no external SDK required.
-Implement `ISidekiqQueueAdapter` (5 methods) to add your own.
+Implement `IHefestoQueueAdapter` (5 methods) to add your own.
 
 ## Features
 
@@ -120,7 +120,7 @@ Implement `ISidekiqQueueAdapter` (5 methods) to add your own.
 - Configurable batch size (1-10 per fetch)
 - Long-polling support
 - Global, per-queue and per-action concurrency limits
-- Retry policies: `TSidekiqSimpleRetryPolicy` (fixed delay) and `TSidekiqExponentialRetryPolicy` (base × n²)
+- Retry policies: `THefestoSimpleRetryPolicy` (fixed delay) and `THefestoExponentialRetryPolicy` (base × n²)
 - Automatic dead-letter queue
 - Graceful shutdown (no lost jobs)
 
@@ -145,9 +145,9 @@ Implement `ISidekiqQueueAdapter` (5 methods) to add your own.
 
 > All features included. No paid tiers.
 
-## Sidekiq4D vs Sidekiq Ruby
+## Hefesto vs Hefesto Ruby
 
-| Feature | Sidekiq OSS | Sidekiq Pro | Sidekiq Enterprise | **Sidekiq4D** |
+| Feature | Hefesto OSS | Hefesto Pro | Hefesto Enterprise | **Hefesto** |
 |---------|:-:|:-:|:-:|:-:|
 | Job processing + retry | x | x | x | **x** |
 | Scheduled + middleware | x | x | x | **x** |
@@ -170,7 +170,7 @@ Chainable pipeline — runs before publish (client) or before execution (server)
 | Prometheus | Server | Counters + histogram metrics |
 | Circuit Breaker | Server | Open/closed/half-open per action |
 
-Implement `ISidekiqServerMiddleware` (1 method) to add your own.
+Implement `IHefestoServerMiddleware` (1 method) to add your own.
 
 ## State Stores
 
@@ -206,7 +206,7 @@ Implement `ISidekiqServerMiddleware` (1 method) to add your own.
 | [WebhookDispatcher](examples/WebhookDispatcher) | Resilient webhook delivery |
 | [ETLPipeline](examples/ETLPipeline) | Job chaining (extract->transform->load) |
 | [NotificationHub](examples/NotificationHub) | Multi-channel fan-out routing |
-| [SQSBenchmark](examples/SQSBenchmark) | Real benchmark: manual vs Sidekiq4D |
+| [SQSBenchmark](examples/SQSBenchmark) | Real benchmark: manual vs Hefesto |
 | [VCLDemo](examples/VCLDemo) | Visual split-screen comparison |
 | [JobGraph](examples/JobGraph) | DAG of dependent jobs with parallel execution |
 | [OTLPTelemetry](examples/OTLPTelemetry) | OpenTelemetry trace export to Jaeger/Tempo |
@@ -229,10 +229,34 @@ docker/             docker-compose for local Redis, Postgres and Jaeger
 Pull requests are welcome. For major changes, open an issue first to discuss.
 
 **Patterns to follow:**
-- Interfaces for extensibility (`ISidekiqQueueAdapter`, `ISidekiqServerMiddleware`)
+- Interfaces for extensibility (`IHefestoQueueAdapter`, `IHefestoServerMiddleware`)
 - Fluent API (method chaining returning `Self`)
 - `class function New` as factory
 - Thread-safety: `TCriticalSection` / `TInterlocked` / `TThreadedQueue`
+
+## The Olympian Family
+
+> *Poseidon comanda os mares — transporte bruto, a força das ondas.*
+> *Triton guarda as águas do pai — gerencia o que flui, retém o que não pode se perder.*
+> *Pégaso voa pelos céus — nasceu do sangue de Medusa, pela espada que Hermes deu a Perseu.*
+> *Hermes percorre todos os reinos — carrega mensagens entre deuses, mortais e monstros, mais rápido que qualquer onda.*
+> *Hefesto forja nas profundezas — invisível, incansável, transformando matéria bruta em obra acabada.*
+
+| Project | Myth | Role |
+|---------|------|------|
+| [**Poseidon**](https://github.com/herlondf/poseidon) | God of the seas | Async transport layer — IOCP/epoll, raw I/O |
+| [**Triton**](https://github.com/herlondf/triton) | Son of Poseidon, guardian of the depths | Generic resource pool — connections, clients, SMTP |
+| [**Pegasus**](https://github.com/herlondf/pegasus) | Born from Poseidon's blood, ridden by heroes | HTTP framework — routing, middleware, providers |
+| [**Hermes**](https://github.com/herlondf/hermes) | Messenger of the gods, guide between realms | Redis client — fast key-value, pub/sub, messaging |
+| **Hefesto** (this lib) | Forgemaster of the gods, works unseen in the depths | Background jobs — queues, workers, retry, scheduling |
+
+---
+
+## Inspiration
+
+Hefesto is inspired by [Sidekiq](https://github.com/sidekiq/sidekiq), the battle-tested background job framework for Ruby. The same core ideas — reliable queues, concurrency, retry with backoff, dead-letter, observability — brought natively to Delphi.
+
+---
 
 ## License
 

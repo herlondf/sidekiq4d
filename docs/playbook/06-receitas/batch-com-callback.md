@@ -1,4 +1,4 @@
-# Receita: Batch com Callback
+﻿# Receita: Batch com Callback
 
 Processar múltiplos jobs como lote com notificação ao concluir.
 
@@ -9,18 +9,18 @@ program BatchComCallback;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Batch,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Batch,
+  Hefesto.Telemetry.Console;
 
 type
-  TProcessItemHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TProcessItemHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TProcessItemHandler.CanHandle(const AAction: string): Boolean;
@@ -28,32 +28,32 @@ begin
   Result := AAction = 'process_item';
 end;
 
-procedure TProcessItemHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TProcessItemHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Processando item: ', AJob.Body);
   Sleep(100); // simula trabalho
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LBatchStore: ISidekiqBatchStore;
-  LServer: ISidekiqServer;
-  LBatch: ISidekiqBatch;
+  LStore: IHefestoStateStore;
+  LBatchStore: IHefestoBatchStore;
+  LServer: IHefestoServer;
+  LBatch: IHefestoBatch;
   I: Integer;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LBatchStore := TSidekiqStateStoreBatchStore.New(LStore);
+  LStore := THefestoInMemoryStateStore.New;
+  LBatchStore := THefestoStateStoreBatchStore.New(LStore);
 
-  LServer := TSidekiqServer.New
-    .UseQueue(TSidekiqInMemoryQueueAdapter.New)
+  LServer := THefestoServer.New
+    .UseQueue(THefestoInMemoryQueueAdapter.New)
     .Concurrency(4)
     .StateStore(LStore)
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('process_item', TProcessItemHandler.Create)
     .Run;
 
   // Criar e commitar o batch
-  LBatch := TSidekiqBatch.New(LBatchStore)
+  LBatch := THefestoBatch.New(LBatchStore)
     .OnComplete(procedure
       begin
         Writeln('--- Batch concluído (sucesso ou falha) ---');
@@ -77,7 +77,7 @@ end.
 
 **Batch com dados dinâmicos:**
 ```pascal
-LBatch := TSidekiqBatch.New(LBatchStore)
+LBatch := THefestoBatch.New(LBatchStore)
   .OnSuccess(procedure begin NotificarSistema end);
 
 for var Pedido in FPedidosPendentes do

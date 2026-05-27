@@ -1,4 +1,4 @@
-# Receita: Job Agendado
+﻿# Receita: Job Agendado
 
 Agendar um job para executar em data/hora futura.
 
@@ -9,18 +9,18 @@ program JobAgendado;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Scheduled,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Scheduled,
+  Hefesto.Telemetry.Console;
 
 type
-  TRelatorioHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TRelatorioHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TRelatorioHandler.CanHandle(const AAction: string): Boolean;
@@ -28,19 +28,19 @@ begin
   Result := AAction = 'gerar_relatorio';
 end;
 
-procedure TRelatorioHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TRelatorioHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Gerando relatório às ', TimeToStr(Now), ': ', AJob.Body);
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LScheduledStore: ISidekiqScheduledStore;
-  LServer: ISidekiqServer;
-  LEntry: TSidekiqScheduledEntry;
+  LStore: IHefestoStateStore;
+  LScheduledStore: IHefestoScheduledStore;
+  LServer: IHefestoServer;
+  LEntry: THefestoScheduledEntry;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LScheduledStore := TSidekiqStateStoreScheduledStore.New(LStore);
+  LStore := THefestoInMemoryStateStore.New;
+  LScheduledStore := THefestoStateStoreScheduledStore.New(LStore);
 
   // Agendar para daqui a 5 segundos
   LEntry := MakeScheduledEntry(
@@ -53,10 +53,10 @@ begin
   LScheduledStore.Schedule(LEntry);
   Writeln('Job agendado para: ', DateTimeToStr(LEntry.DueAt));
 
-  LServer := TSidekiqServer.New
-    .UseQueue(TSidekiqInMemoryQueueAdapter.New)
+  LServer := THefestoServer.New
+    .UseQueue(THefestoInMemoryQueueAdapter.New)
     .StateStore(LStore)
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('gerar_relatorio', TRelatorioHandler.Create)
     .Run;
 

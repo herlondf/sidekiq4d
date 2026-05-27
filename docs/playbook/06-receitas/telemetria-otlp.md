@@ -1,4 +1,4 @@
-# Receita: Telemetria OTLP com Jaeger
+﻿# Receita: Telemetria OTLP com Jaeger
 
 Enviar traces OpenTelemetry para Jaeger para observabilidade completa dos jobs.
 
@@ -31,26 +31,26 @@ program TelemetriaOTLP;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Telemetry.Console,
-  Sidekiq4D.Telemetry.OTLP;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Telemetry.Console,
+  Hefesto.Telemetry.OTLP;
 
 type
-  TProcessHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TProcessHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TFalhaHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TFalhaHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TProcessHandler.CanHandle(const AAction: string): Boolean;
@@ -58,7 +58,7 @@ begin
   Result := AAction = 'process';
 end;
 
-procedure TProcessHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TProcessHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Sleep(Random(200) + 50); // simula latência variável
   Writeln('Processado: ', AJob.JobId);
@@ -69,29 +69,29 @@ begin
   Result := AAction = 'falha';
 end;
 
-procedure TFalhaHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TFalhaHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   raise Exception.Create('Erro intencional para trace de falha');
 end;
 
 var
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
   I: Integer;
 begin
   Randomize;
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(4)
-    .StateStore(TSidekiqInMemoryStateStore.New)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(3, 5, 60))
+    .StateStore(THefestoInMemoryStateStore.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(3, 5, 60))
     .Telemetry(
       // Encadear console + OTLP
-      TSidekiqCompositeTelemetry.New([
-        TSidekiqConsoleTelemetry.New,
-        TSidekiqOTLPTraceTelemetry.New(
+      THefestoCompositeTelemetry.New([
+        THefestoConsoleTelemetry.New,
+        THefestoOTLPTraceTelemetry.New(
           'http://localhost:4318',  // OTLP HTTP endpoint
           'sidekiq4d-demo'         // service.name
         )

@@ -1,4 +1,4 @@
-program NotificationHub;
+﻿program NotificationHub;
 
 {$APPTYPE CONSOLE}
 
@@ -9,59 +9,59 @@ program NotificationHub;
 //   to the appropriate channel handlers (push, email, sms)
 // - Each channel handler processes independently
 // - Concurrency limited to 2 per channel
-// - Shows how to implement content-based routing with Sidekiq4D
+// - Shows how to implement content-based routing with Hefesto
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 var
-  GServer: ISidekiqServer;
+  GServer: IHefestoServer;
 
 type
-  TNotificationRouterHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TNotificationRouterHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TPushNotificationHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TPushNotificationHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TEmailNotificationHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TEmailNotificationHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TSmsNotificationHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TSmsNotificationHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TNotificationRouterHandler }
 
-function TNotificationRouterHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TNotificationRouterHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'route_notification';
 end;
 
-procedure TNotificationRouterHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TNotificationRouterHandler.Perform(const AContext: IHefestoJobContext);
 var
   LBody: string;
 begin
@@ -91,12 +91,12 @@ end;
 
 { TPushNotificationHandler }
 
-function TPushNotificationHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TPushNotificationHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'send_push';
 end;
 
-procedure TPushNotificationHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TPushNotificationHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [PUSH] Sending push notification: %s', [AContext.Job.Body]));
   Sleep(50); // Simulate FCM/APNs call
@@ -105,12 +105,12 @@ end;
 
 { TEmailNotificationHandler }
 
-function TEmailNotificationHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TEmailNotificationHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'send_email_notif';
 end;
 
-procedure TEmailNotificationHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TEmailNotificationHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [EMAIL] Sending email notification: %s', [AContext.Job.Body]));
   Sleep(80); // Simulate SMTP send
@@ -119,12 +119,12 @@ end;
 
 { TSmsNotificationHandler }
 
-function TSmsNotificationHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TSmsNotificationHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'send_sms';
 end;
 
-procedure TSmsNotificationHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TSmsNotificationHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [SMS] Sending SMS: %s', [AContext.Job.Body]));
   Sleep(60); // Simulate SMS gateway call
@@ -132,11 +132,11 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
+  Queue: THefestoInMemoryQueueAdapter;
 begin
   try
     WriteLn('==============================================');
-    WriteLn(' Sidekiq4D Demo: Multi-Channel Notification Hub');
+    WriteLn(' Hefesto Demo: Multi-Channel Notification Hub');
     WriteLn('==============================================');
     WriteLn('');
     WriteLn('Pattern: Router dispatches to channel handlers');
@@ -144,7 +144,7 @@ begin
     WriteLn('Concurrency: 2 per channel action');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
     // Enqueue notifications with different channel preferences
     Queue.Enqueue('route_notification',
@@ -161,7 +161,7 @@ begin
     WriteLn('--- Processing ---');
     WriteLn('');
 
-    GServer := TSidekiqServer.New
+    GServer := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(100)
@@ -170,9 +170,9 @@ begin
       .ActionConcurrency('send_push', 2)
       .ActionConcurrency('send_email_notif', 2)
       .ActionConcurrency('send_sms', 2)
-      .StateStore(TSidekiqInMemoryStateStore.New)
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(2, 3))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .StateStore(THefestoInMemoryStateStore.New)
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(2, 3))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('route_notification', TNotificationRouterHandler.Create)
       .RegisterHandler('send_push', TPushNotificationHandler.Create)
       .RegisterHandler('send_email_notif', TEmailNotificationHandler.Create)

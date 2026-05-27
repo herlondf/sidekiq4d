@@ -1,4 +1,4 @@
-# ── Sidekiq4D — Infraestrutura local de desenvolvimento ──────────────────
+﻿# ── Hefesto — Infraestrutura local de desenvolvimento ──────────────────
 #
 # Cobre todos os adapters testáveis sem conta cloud:
 #   Redis, PostgreSQL, MongoDB, RabbitMQ, Kafka (+REST Proxy),
@@ -10,7 +10,7 @@
 #   docker compose down                      # para e remove containers
 #   docker compose down -v                   # remove também os volumes
 #
-# Strings de conexão para o worker Sidekiq4D:
+# Strings de conexão para o worker Hefesto:
 #   Redis:            redis://localhost:6379
 #   PostgreSQL:       host=localhost port=5432 dbname=sidekiq4d user=sidekiq4d password=sidekiq4d
 #   MongoDB:          mongodb://localhost:27017
@@ -117,7 +117,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Adapter Sidekiq4D usa Confluent REST Proxy (HTTP) — não fala direto com Kafka.
+  # Adapter Hefesto usa Confluent REST Proxy (HTTP) — não fala direto com Kafka.
   kafka-rest:
     image: confluentinc/cp-kafka-rest:latest
     container_name: sidekiq4d-kafka-rest
@@ -169,7 +169,7 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "4318:4318"    # OTLP HTTP (Sidekiq4D envia aqui)
+      - "4318:4318"    # OTLP HTTP (Hefesto envia aqui)
       - "16686:16686"  # UI web
     restart: unless-stopped
 

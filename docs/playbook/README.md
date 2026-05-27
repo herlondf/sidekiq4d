@@ -1,6 +1,6 @@
-# Sidekiq4D — Playbook
+﻿# Hefesto — Playbook
 
-Guia de referência técnica do framework Sidekiq4D para processamento assíncrono de jobs em Delphi.
+Guia de referência técnica do framework Hefesto para processamento assíncrono de jobs em Delphi.
 
 ## Seções
 

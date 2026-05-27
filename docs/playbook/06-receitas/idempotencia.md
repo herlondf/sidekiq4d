@@ -1,4 +1,4 @@
-# Receita: Idempotência
+﻿# Receita: Idempotência
 
 Prevenir que o mesmo job seja processado mais de uma vez quando o broker entrega duplicatas.
 
@@ -9,18 +9,18 @@ program Idempotencia;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Idempotency,
+  Hefesto.Telemetry.Console;
 
 type
-  TTransferenciaHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TTransferenciaHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TTransferenciaHandler.CanHandle(const AAction: string): Boolean;
@@ -28,7 +28,7 @@ begin
   Result := AAction = 'transferencia';
 end;
 
-procedure TTransferenciaHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TTransferenciaHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // Este código executa no máximo uma vez por JobId
   Writeln('Executando transferência: ', AJob.Body);
@@ -36,19 +36,19 @@ begin
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LStore := THefestoInMemoryStateStore.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(4)
     .StateStore(LStore)
-    .Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Idempotency(THefestoStateStoreIdempotency.New(LStore))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('transferencia', TTransferenciaHandler.Create)
     .Run;
 
@@ -70,17 +70,17 @@ end.
 ```pascal
 // Permite reprocessar o mesmo job após 24 horas
 .Idempotency(
-  TSidekiqRenewableIdempotency.New(LStore, 86400)  // 86400s = 24h
+  THefestoRenewableIdempotency.New(LStore, 86400)  // 86400s = 24h
 )
 ```
 
 **Com Redis para persistência entre restarts:**
 
 ```pascal
-LStore := TSidekiqRedis4DStateStore.New
+LStore := THefestoRedis4DStateStore.New
   .ConnectionString('redis://localhost:6379');
 
-.Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
+.Idempotency(THefestoStateStoreIdempotency.New(LStore))
 ```
 
 Ver [idempotency.md](../04-features/idempotency.md) para detalhes sobre a interface.

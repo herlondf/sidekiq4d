@@ -1,20 +1,20 @@
-# Queue Adapters
+﻿# Queue Adapters
 
-Implementam `ISidekiqQueueAdapter` (`src/Sidekiq4D.Queue.Interfaces.pas`).
+Implementam `IHefestoQueueAdapter` (`src/Hefesto.Queue.Interfaces.pas`).
 
 ## Tabela
 
 | Adapter | Unit | Dependência externa | Protocolo |
 |---------|------|--------------------|-----------| 
-| `TSidekiqInMemoryQueueAdapter` | `Sidekiq4D.Queue.InMemory` | Nenhuma | In-process |
-| `TSidekiqSQSQueueAdapter` | `Sidekiq4D.Queue.SQS` | AWS (HTTP + SigV4) | HTTPS REST |
-| `TSidekiqRabbitMQQueueAdapter` | `Sidekiq4D.Queue.RabbitMQ` | RabbitMQ Management API | HTTPS REST |
-| `TSidekiqKafkaQueueAdapter` | `Sidekiq4D.Queue.Kafka` | Confluent REST Proxy | HTTPS REST |
-| `TSidekiqAzureServiceBusAdapter` | `Sidekiq4D.Queue.AzureServiceBus` | Azure Service Bus | HTTPS REST |
-| `TSidekiqGooglePubSubAdapter` | `Sidekiq4D.Queue.GooglePubSub` | Google Cloud PubSub | HTTPS REST |
-| `TSidekiqRedisStreamsAdapter` | `Sidekiq4D.Queue.RedisStreams` | Redis4D + XREADGROUP | TCP |
-| `TSidekiqHTTPIngressAdapter` | `Sidekiq4D.Queue.HTTPIngress` | Indy (bundled) | HTTP POST |
-| `TSidekiqTCPIngressAdapter` | `Sidekiq4D.Queue.TCPIngress` | Indy/Synapse (bundled) | TCP |
+| `THefestoInMemoryQueueAdapter` | `Hefesto.Queue.InMemory` | Nenhuma | In-process |
+| `THefestoSQSQueueAdapter` | `Hefesto.Queue.SQS` | AWS (HTTP + SigV4) | HTTPS REST |
+| `THefestoRabbitMQQueueAdapter` | `Hefesto.Queue.RabbitMQ` | RabbitMQ Management API | HTTPS REST |
+| `THefestoKafkaQueueAdapter` | `Hefesto.Queue.Kafka` | Confluent REST Proxy | HTTPS REST |
+| `THefestoAzureServiceBusAdapter` | `Hefesto.Queue.AzureServiceBus` | Azure Service Bus | HTTPS REST |
+| `THefestoGooglePubSubAdapter` | `Hefesto.Queue.GooglePubSub` | Google Cloud PubSub | HTTPS REST |
+| `THefestoRedisStreamsAdapter` | `Hefesto.Queue.RedisStreams` | Redis4D + XREADGROUP | TCP |
+| `THefestoHTTPIngressAdapter` | `Hefesto.Queue.HTTPIngress` | Indy (bundled) | HTTP POST |
+| `THefestoTCPIngressAdapter` | `Hefesto.Queue.TCPIngress` | Indy/Synapse (bundled) | TCP |
 
 ## Quando usar cada um
 
@@ -36,15 +36,15 @@ Implementam `ISidekiqQueueAdapter` (`src/Sidekiq4D.Queue.Interfaces.pas`).
 
 **TCP Ingress** — receber jobs via TCP de sistemas internos com baixa latência.
 
-## Interface ISidekiqQueueAdapter
+## Interface IHefestoQueueAdapter
 
 ```pascal
-ISidekiqQueueAdapter = interface
+IHefestoQueueAdapter = interface
   function Name: string;
-  function Fetch(out AJob: ISidekiqJobEnvelope): Boolean;
-  procedure Ack(const AJob: ISidekiqJobEnvelope);
-  procedure Nack(const AJob: ISidekiqJobEnvelope);
-  procedure MoveToDeadLetter(const AJob: ISidekiqJobEnvelope);
+  function Fetch(out AJob: IHefestoJobEnvelope): Boolean;
+  procedure Ack(const AJob: IHefestoJobEnvelope);
+  procedure Nack(const AJob: IHefestoJobEnvelope);
+  procedure MoveToDeadLetter(const AJob: IHefestoJobEnvelope);
 end;
 ```
 

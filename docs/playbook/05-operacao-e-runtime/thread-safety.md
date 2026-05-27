@@ -1,8 +1,8 @@
-# Thread-Safety
+﻿# Thread-Safety
 
 ## Modelo de threading
 
-O servidor Sidekiq4D usa um pool de threads fixo definido por `.Concurrency(N)`. Cada worker thread opera de forma independente:
+O servidor Hefesto usa um pool de threads fixo definido por `.Concurrency(N)`. Cada worker thread opera de forma independente:
 
 - **Fetch:** cada worker faz seu próprio fetch da fila (sem competição explícita — o adapter deve ser thread-safe)
 - **Execução:** cada job é executado em exatamente uma thread ao mesmo tempo
@@ -22,14 +22,14 @@ O servidor Sidekiq4D usa um pool de threads fixo definido por `.Concurrency(N)`.
 ### No handler (estado compartilhado entre execuções)
 
 ```pascal
-TMyHandler = class(TInterfacedObject, ISidekiqJobHandler)
+TMyHandler = class(TInterfacedObject, IHefestoJobHandler)
 private
   FLock: TCriticalSection;
   FSharedCache: TDictionary<string, string>;
 public
   constructor Create;
   destructor Destroy; override;
-  procedure Execute(const AJob: ISidekiqJobEnvelope);
+  procedure Execute(const AJob: IHefestoJobEnvelope);
 end;
 
 constructor TMyHandler.Create;
@@ -46,7 +46,7 @@ begin
   inherited;
 end;
 
-procedure TMyHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TMyHandler.Execute(const AJob: IHefestoJobEnvelope);
 var
   LValue: string;
 begin
@@ -68,7 +68,7 @@ end;
 ### Usando TMonitor (alternativa mais leve)
 
 ```pascal
-procedure TMyHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TMyHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   TMonitor.Enter(FSharedObject);
   try
@@ -81,13 +81,13 @@ end;
 
 ## HTTP Ingress Adapter
 
-O `TSidekiqHTTPIngressAdapter` usa `TThreadedQueue<ISidekiqJobEnvelope>` internamente para receber jobs via HTTP e entregá-los ao worker pool de forma thread-safe.
+O `THefestoHTTPIngressAdapter` usa `TThreadedQueue<IHefestoJobEnvelope>` internamente para receber jobs via HTTP e entregá-los ao worker pool de forma thread-safe.
 
 Se a fila interna encher (burst de requests), novos jobs são rejeitados com timeout. Para aumentar a capacidade:
 
 ```pascal
 // Capacidade e timeout configuráveis no construtor do adapter
-TSidekiqHTTPIngressAdapter.New(
+THefestoHTTPIngressAdapter.New(
   Port,        // porta HTTP
   Capacity,    // capacidade da fila interna (padrão varia)
   PushTimeoutMs  // timeout de push (ms)
@@ -96,7 +96,7 @@ TSidekiqHTTPIngressAdapter.New(
 
 ## Telemetria e métricas históricas
 
-`TSidekiqHistoricalMetricsTelemetry` usa `TCriticalSection` internamente para proteger os buckets de métricas. Sem necessidade de sincronização adicional ao usá-lo.
+`THefestoHistoricalMetricsTelemetry` usa `TCriticalSection` internamente para proteger os buckets de métricas. Sem necessidade de sincronização adicional ao usá-lo.
 
 ## Conexões de banco de dados
 

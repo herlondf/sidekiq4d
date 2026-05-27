@@ -1,4 +1,4 @@
-# Leader Election
+﻿# Leader Election
 
 Garante que apenas um processo (entre múltiplos rodando em paralelo) execute determinadas tarefas exclusivas — como scheduled jobs, manutenção periódica ou tarefas singleton.
 
@@ -6,17 +6,17 @@ Garante que apenas um processo (entre múltiplos rodando em paralelo) execute de
 
 ```pascal
 uses
-  Sidekiq4D.Server,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Store.Redis4D;
+  Hefesto.Server,
+  Hefesto.Locking,
+  Hefesto.Store.Redis4D;
 
 var
-  LServer: ISidekiqServer;
+  LServer: IHefestoServer;
 begin
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(TMyAdapter.New)
     .LockProvider(
-      TSidekiqRedis4DLockProvider.New
+      THefestoRedis4DLockProvider.New
         .ConnectionString('redis://localhost:6379')
     )
     .LeaderName('meu-cluster')          // nome do grupo de election
@@ -47,10 +47,10 @@ O servidor tenta renovar o lease periodicamente. Se o líder atual falhar, outro
 
 **O `LockProvider` deve ser Redis-based para funcionar em múltiplos processos.**
 
-`TSidekiqInMemoryStateStore` garante exclusão apenas dentro do mesmo processo — não funciona em ambientes com múltiplos hosts.
+`THefestoInMemoryStateStore` garante exclusão apenas dentro do mesmo processo — não funciona em ambientes com múltiplos hosts.
 
 Providers suportados:
-- `TSidekiqRedis4DLockProvider` — recomendado para produção
+- `THefestoRedis4DLockProvider` — recomendado para produção
 - InMemory — apenas para testes com processo único
 
 ## Tarefas exclusivas do líder
@@ -58,14 +58,14 @@ Providers suportados:
 Exemplo: apenas o líder executa scheduled jobs
 
 ```pascal
-TSchedulerHandler = class(TInterfacedObject, ISidekiqJobHandler)
+TSchedulerHandler = class(TInterfacedObject, IHefestoJobHandler)
 private
-  FServer: ISidekiqServer;
+  FServer: IHefestoServer;
 public
-  procedure Execute(const AJob: ISidekiqJobEnvelope);
+  procedure Execute(const AJob: IHefestoJobEnvelope);
 end;
 
-procedure TSchedulerHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TSchedulerHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   if not FServer.IsLeader then
     Exit;  // followers ignoram tarefas exclusivas

@@ -1,10 +1,10 @@
-program SQLiteDemo;
+﻿program SQLiteDemo;
 
 {$APPTYPE CONSOLE}
 
 // Demo: State Store com SQLite via FireDAC
 //
-// Mostra como usar SQLite como backend persistente para o Sidekiq4D.
+// Mostra como usar SQLite como backend persistente para o Hefesto.
 // Nao requer servidor externo — o banco e um arquivo local.
 // Ideal para cenarios single-process, Windows Service ou aplicacoes desktop.
 
@@ -16,35 +16,35 @@ uses
   FireDAC.DApt,
   FireDAC.Phys.SQLite,
   FireDAC.Phys.SQLiteDef,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.Postgres,
-  Sidekiq4D.Store.FireDAC,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Scheduled,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.Postgres,
+  Hefesto.Store.FireDAC,
+  Hefesto.Locking,
+  Hefesto.Idempotency,
+  Hefesto.Scheduled,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TOrderHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TOrderHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TOrderHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TOrderHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'process_order';
 end;
 
-procedure TOrderHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TOrderHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [order] Processando pedido: %s', [AContext.Job.Body]));
 end;
@@ -54,21 +54,21 @@ const
 
 var
   Connection: TFDConnection;
-  StateStore: ISidekiqStateStore;
-  Queue: TSidekiqInMemoryQueueAdapter;
-  Server: ISidekiqServer;
+  StateStore: IHefestoStateStore;
+  Queue: THefestoInMemoryQueueAdapter;
+  Server: IHefestoServer;
 begin
   try
-    WriteLn('Sidekiq4D - Demo SQLite (FireDAC)');
+    WriteLn('Hefesto - Demo SQLite (FireDAC)');
     WriteLn(Format('Banco: %s', [DB_FILE]));
     WriteLn('');
 
     // --- Criar conexao SQLite ---
-    Connection := TSidekiqFireDACBackend.NewSQLiteConnection(DB_FILE);
+    Connection := THefestoFireDACBackend.NewSQLiteConnection(DB_FILE);
     try
       // --- State Store com backend SQLite ---
-      StateStore := TSidekiqPostgresStateStore.New
-        .Backend(TSidekiqFireDACBackend.New(Connection))
+      StateStore := THefestoPostgresStateStore.New
+        .Backend(THefestoFireDACBackend.New(Connection))
         .TableName('sidekiq_state');
 
       WriteLn('--- Configuracao ---');
@@ -77,18 +77,18 @@ begin
       WriteLn('  Locks, idempotency e scheduled persistem entre reinicializacoes');
       WriteLn('');
 
-      Queue := TSidekiqInMemoryQueueAdapter.New;
+      Queue := THefestoInMemoryQueueAdapter.New;
 
-      Server := TSidekiqServer.New
+      Server := THefestoServer.New
         .UseQueue(Queue)
         .BatchSize(10)
         .IdleDelayMs(0)
         .StopWhenIdle
         .StateStore(StateStore)
-        .LockProvider(TSidekiqInMemoryLockProvider.New(StateStore))
-        .Idempotency(TSidekiqStateStoreIdempotency.New(StateStore))
-        .ScheduledStore(TSidekiqInMemoryScheduledStore.New)
-        .Telemetry(TSidekiqConsoleTelemetry.New)
+        .LockProvider(THefestoInMemoryLockProvider.New(StateStore))
+        .Idempotency(THefestoStateStoreIdempotency.New(StateStore))
+        .ScheduledStore(THefestoInMemoryScheduledStore.New)
+        .Telemetry(THefestoConsoleTelemetry.New)
         .RegisterHandler('process_order', TOrderHandler.Create);
 
       // --- Enfileirar e processar ---

@@ -1,7 +1,7 @@
-unit HorseIntegration.Main;
+﻿unit HorseIntegration.Main;
 
 {
-  Exemplo: integração Sidekiq4D + Horse
+  Exemplo: integração Hefesto + Horse
 
   Demonstra o padrão clássico HTTP → Job:
     POST /jobs/email   → enfileira EmailSendJob, retorna 202 Accepted
@@ -12,11 +12,11 @@ unit HorseIntegration.Main;
     1. Instale o Horse via GetIt ou adicione o search path manualmente:
        https://github.com/HashLoad/horse
     2. Certifique-se de que o Redis (ou outro store) está acessível.
-    3. O Sidekiq4D worker processa os jobs em background.
+    3. O Hefesto worker processa os jobs em background.
 
   Como executar (em dois processos separados ou em threads):
     Processo 1: este servidor HTTP na porta 8080
-    Processo 2: TSidekiqServer.New.UseQueue(...).Run
+    Processo 2: THefestoServer.New.UseQueue(...).Run
 }
 
 interface
@@ -31,11 +31,11 @@ uses
   Horse,
   Horse.Request,
   Horse.Response,
-  Sidekiq4D,
-  Sidekiq4D.Middleware.Horse;
+  Hefesto,
+  Hefesto.Middleware.Horse;
 
 var
-  GServer: ISidekiqServer;
+  GServer: IHefestoServer;
 
 // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ begin
     LBody := '{}';
 
   // Enfileira o job; o correlation_id é injetado automaticamente pelo
-  // TSidekiqHorseCorrelationMiddleware se X-Request-ID estiver presente.
+  // THefestoHorseCorrelationMiddleware se X-Request-ID estiver presente.
   GServer.Enqueue('emails', 'email.send', LBody);
 
   ARes
@@ -65,7 +65,7 @@ begin
   LJobId := AReq.Params['id'];
 
   // Consulta o StateStore — jobs completados registram status via
-  // ISidekiqIdempotency (chave 'idempotency:<hash>').
+  // IHefestoIdempotency (chave 'idempotency:<hash>').
   // Este exemplo consulta diretamente pelo ID (chave 'job:<id>').
   // Adapte conforme o atributo idempotency_key que você usa.
   LStatus := GServer.StateStore.Get('job:status:' + LJobId);
@@ -87,24 +87,24 @@ end;
 
 procedure StartServer(const APort: Word);
 begin
-  // Configura o servidor Sidekiq4D (apenas para enfileirar via cliente;
+  // Configura o servidor Hefesto (apenas para enfileirar via cliente;
   // o worker pode rodar em processo/thread separado).
-  GServer := TSidekiqServer.New
-    .UseQueue(TSidekiqInMemoryQueueAdapter.New('emails'))
+  GServer := THefestoServer.New
+    .UseQueue(THefestoInMemoryQueueAdapter.New('emails'))
     // Para usar Redis como store:
-    // .StateStore(TSidekiqPostgresStateStore.New
-    //   .Backend(TSidekiqFireDACBackend.New(FDConnection)))
-    .UseClientMiddleware(TSidekiqHorseCorrelationMiddleware.New);
+    // .StateStore(THefestoPostgresStateStore.New
+    //   .Backend(THefestoFireDACBackend.New(FDConnection)))
+    .UseClientMiddleware(THefestoHorseCorrelationMiddleware.New);
 
   // Middleware Horse para injetar correlation ID
-  THorse.Use(TSidekiqHorseMiddleware.CorrelationId);
+  THorse.Use(THefestoHorseMiddleware.CorrelationId);
 
   // Rotas
   THorse.Post('/jobs/email',  HandlePostEmailJob);
   THorse.Get('/jobs/:id',     HandleGetJobStatus);
   THorse.Get('/health',       HandleHealth);
 
-  Writeln(Format('Horse+Sidekiq4D rodando na porta %d', [APort]));
+  Writeln(Format('Horse+Hefesto rodando na porta %d', [APort]));
   Writeln('POST /jobs/email   — enfileira EmailSendJob');
   Writeln('GET  /jobs/:id     — consulta status');
   Writeln('GET  /health       — health check');

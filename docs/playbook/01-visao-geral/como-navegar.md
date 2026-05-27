@@ -1,22 +1,22 @@
-# Como Navegar no Repositório
+﻿# Como Navegar no Repositório
 
 ## Layout de diretórios
 
 ```
-Sidekiq4D/
+Hefesto/
 ├── src/                    Units core (~35 units)
-│   ├── Sidekiq4D.*.pas     Core engine e features
+│   ├── Hefesto.*.pas     Core engine e features
 │   ├── adapters/           Adapters plugáveis (~35 units)
-│   │   ├── Sidekiq4D.Queue.*.pas
-│   │   ├── Sidekiq4D.Store.*.pas
-│   │   ├── Sidekiq4D.Middleware.*.pas
-│   │   └── Sidekiq4D.Telemetry.*.pas
+│   │   ├── Hefesto.Queue.*.pas
+│   │   ├── Hefesto.Store.*.pas
+│   │   ├── Hefesto.Middleware.*.pas
+│   │   └── Hefesto.Telemetry.*.pas
 │   └── vendor/             Synapse (bundled, sem instalação)
 ├── examples/               25 exemplos com .dpr próprio
 ├── tests/
-│   ├── Sidekiq4D.UnitTests.dpr        11 fixtures DUnitX
-│   ├── Sidekiq4D.ThreadSafety.Tests.dpr
-│   └── Sidekiq4D.Redis4D.RealSmoke.dpr
+│   ├── Hefesto.UnitTests.dpr        11 fixtures DUnitX
+│   ├── Hefesto.ThreadSafety.Tests.dpr
+│   └── Hefesto.Redis4D.RealSmoke.dpr
 ├── docker/
 │   └── docker-compose.yml  Redis, Postgres, Jaeger
 ├── docs/
@@ -28,10 +28,10 @@ Sidekiq4D/
 ## Como encontrar o que precisa
 
 **Preciso de um adapter para X:**
-→ `src/adapters/Sidekiq4D.Queue.<X>.pas` ou `Sidekiq4D.Store.<X>.pas`
+→ `src/adapters/Hefesto.Queue.<X>.pas` ou `Hefesto.Store.<X>.pas`
 
 **Preciso entender uma feature:**
-→ `src/Sidekiq4D.<Feature>.pas` + exemplo em `examples/<Feature>/`
+→ `src/Hefesto.<Feature>.pas` + exemplo em `examples/<Feature>/`
 
 **Preciso de código funcional para começar:**
 → `examples/BasicConsole/` ou `examples/InMemory/`
@@ -56,10 +56,10 @@ Lista completa de aliases em `AGENTS.md`.
 
 | Prefixo | Tipo |
 |---------|------|
-| `Sidekiq4D.Queue.*` | Queue adapters |
-| `Sidekiq4D.Store.*` | State stores |
-| `Sidekiq4D.Middleware.*` | Middlewares de servidor |
-| `Sidekiq4D.Telemetry.*` | Providers de telemetria |
-| `Sidekiq4D.<Feature>` | Features do core |
+| `Hefesto.Queue.*` | Queue adapters |
+| `Hefesto.Store.*` | State stores |
+| `Hefesto.Middleware.*` | Middlewares de servidor |
+| `Hefesto.Telemetry.*` | Providers de telemetria |
+| `Hefesto.<Feature>` | Features do core |
 
-Convenção de nomes de classes: `TSidekiq<Nome>`, interfaces `ISidekiq<Nome>`, exceções `ESidekiq<Nome>`.
+Convenção de nomes de classes: `THefesto<Nome>`, interfaces `IHefesto<Nome>`, exceções `EHefesto<Nome>`.

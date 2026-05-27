@@ -1,4 +1,4 @@
-program EmailSender;
+﻿program EmailSender;
 
 {$APPTYPE CONSOLE}
 
@@ -11,35 +11,35 @@ program EmailSender;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.RateLimit,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.RateLimit,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TEmailSendHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TEmailSendHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TEmailSendHandler }
 
-function TEmailSendHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TEmailSendHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'send_email';
 end;
 
-procedure TEmailSendHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TEmailSendHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn('  [SMTP] Connecting to mail server...');
   Sleep(100); // Simulate SMTP connection + send
@@ -47,12 +47,12 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  StateStore: ISidekiqStateStore;
+  Queue: THefestoInMemoryQueueAdapter;
+  StateStore: IHefestoStateStore;
 begin
   try
     WriteLn('===========================================');
-    WriteLn(' Sidekiq4D Demo: Async Email Sender');
+    WriteLn(' Hefesto Demo: Async Email Sender');
     WriteLn('===========================================');
     WriteLn('');
     WriteLn('Configuration:');
@@ -60,8 +60,8 @@ begin
     WriteLn('  - Retry: 3 attempts, 5s delay');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
-    StateStore := TSidekiqInMemoryStateStore.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
+    StateStore := THefestoInMemoryStateStore.New;
 
     // Enqueue 5 emails to different recipients
     Queue.Enqueue('send_email', '{"to":"alice@company.com","subject":"Welcome aboard!"}');
@@ -75,15 +75,15 @@ begin
     WriteLn('--- Processing with rate limiting ---');
     WriteLn('');
 
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
       .StateStore(StateStore)
-      .RateLimiter(TSidekiqTokenBucketRateLimiter.New(StateStore))
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(3, 5))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .RateLimiter(THefestoTokenBucketRateLimiter.New(StateStore))
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(3, 5))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('send_email', TEmailSendHandler.Create)
       .Run;
 

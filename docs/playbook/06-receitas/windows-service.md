@@ -1,6 +1,6 @@
-# Receita: Windows Service
+﻿# Receita: Windows Service
 
-Executar o servidor Sidekiq4D como Windows Service para inicialização automática e operação sem login de usuário.
+Executar o servidor Hefesto como Windows Service para inicialização automática e operação sem login de usuário.
 
 ## Estrutura do projeto
 
@@ -22,11 +22,11 @@ interface
 uses
   System.SysUtils,
   Vcl.SvcMgr,
-  Sidekiq4D.Server,
-  Sidekiq4D.Queue.RedisStreams,
-  Sidekiq4D.Store.Redis4D,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Queue.RedisStreams,
+  Hefesto.Store.Redis4D,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 type
   TWorkerService = class(TService)
@@ -34,7 +34,7 @@ type
     procedure ServiceStop(Sender: TService);
     procedure ServiceExecute(Sender: TService);
   private
-    FServer: ISidekiqServer;
+    FServer: IHefestoServer;
   public
     function GetServiceController: TServiceController; override;
   end;
@@ -50,7 +50,7 @@ begin
     FServer := TWorkerSetup.CreateServer;
     FServer.Run;
     Started := True;
-    LogMessage('Sidekiq4D Worker Service iniciado.');
+    LogMessage('Hefesto Worker Service iniciado.');
   except on E: Exception do
     begin
       LogMessage('Erro ao iniciar: ' + E.Message, EVENTLOG_ERROR_TYPE);
@@ -65,7 +65,7 @@ begin
   begin
     FServer.Stop;
     FServer := nil;
-    LogMessage('Sidekiq4D Worker Service parado.');
+    LogMessage('Hefesto Worker Service parado.');
   end;
 end;
 
@@ -95,39 +95,39 @@ unit WorkerSetup;
 interface
 
 uses
-  Sidekiq4D.Server;
+  Hefesto.Server;
 
 type
   TWorkerSetup = class
   public
-    class function CreateServer: ISidekiqServer;
+    class function CreateServer: IHefestoServer;
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  Sidekiq4D.Queue.RedisStreams,
-  Sidekiq4D.Store.Redis4D,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Telemetry.Console,
+  Hefesto.Queue.RedisStreams,
+  Hefesto.Store.Redis4D,
+  Hefesto.Retry,
+  Hefesto.Idempotency,
+  Hefesto.Telemetry.Console,
   // seus handlers aqui
   MyHandlers;
 
 const
   REDIS_URL = 'redis://localhost:6379';
 
-class function TWorkerSetup.CreateServer: ISidekiqServer;
+class function TWorkerSetup.CreateServer: IHefestoServer;
 var
-  LStore: ISidekiqStateStore;
+  LStore: IHefestoStateStore;
 begin
-  LStore := TSidekiqRedis4DStateStore.New
+  LStore := THefestoRedis4DStateStore.New
     .ConnectionString(REDIS_URL);
 
-  Result := TSidekiqServer.New
+  Result := THefestoServer.New
     .UseQueue(
-      TSidekiqRedisStreamsAdapter.New
+      THefestoRedisStreamsAdapter.New
         .ConnectionString(REDIS_URL)
         .StreamName('sidekiq4d:jobs')
         .ConsumerGroup('workers')
@@ -135,9 +135,9 @@ begin
     )
     .Concurrency(4)
     .StateStore(LStore)
-    .Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Idempotency(THefestoStateStoreIdempotency.New(LStore))
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('process_order', TProcessOrderHandler.Create)
     .RegisterHandler('send_email',    TSendEmailHandler.Create);
 end;
@@ -192,13 +192,13 @@ Após instalar:
 
 ## Logging em produção
 
-Substituir `TSidekiqConsoleTelemetry` por um provider que grava no Windows Event Log ou em arquivo:
+Substituir `THefestoConsoleTelemetry` por um provider que grava no Windows Event Log ou em arquivo:
 
 ```pascal
 .Telemetry(
-  TSidekiqCompositeTelemetry.New([
-    TSidekiqOTLPTraceTelemetry.New('http://collector:4318', 'worker-svc'),
-    TSidekiqMetricsTelemetry.New('statsd-host', 8125)
+  THefestoCompositeTelemetry.New([
+    THefestoOTLPTraceTelemetry.New('http://collector:4318', 'worker-svc'),
+    THefestoMetricsTelemetry.New('statsd-host', 8125)
   ])
 )
 ```

@@ -1,4 +1,4 @@
-# Batch Jobs
+﻿# Batch Jobs
 
 Processamento de múltiplos jobs como uma unidade lógica, com callbacks executados quando o lote completa ou é bem-sucedido.
 
@@ -6,17 +6,17 @@ Processamento de múltiplos jobs como uma unidade lógica, com callbacks executa
 
 ```pascal
 uses
-  Sidekiq4D.Batch,
-  Sidekiq4D.Store.InMemory;
+  Hefesto.Batch,
+  Hefesto.Store.InMemory;
 
 var
-  LStore: ISidekiqStateStore;
-  LBatchStore: ISidekiqBatchStore;
+  LStore: IHefestoStateStore;
+  LBatchStore: IHefestoBatchStore;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LBatchStore := TSidekiqStateStoreBatchStore.New(LStore);
+  LStore := THefestoInMemoryStateStore.New;
+  LBatchStore := THefestoStateStoreBatchStore.New(LStore);
 
-  TSidekiqBatch.New(LBatchStore)
+  THefestoBatch.New(LBatchStore)
     .OnComplete(procedure
       begin
         Writeln('Batch concluído (sucesso ou falha)');
@@ -47,9 +47,9 @@ end;
 
 ```pascal
 var
-  LBatch: ISidekiqBatch;
+  LBatch: IHefestoBatch;
 begin
-  LBatch := TSidekiqBatch.New(LBatchStore)
+  LBatch := THefestoBatch.New(LBatchStore)
     .OnComplete(procedure begin ... end);
 
   // Adicionar jobs de forma condicional
@@ -78,9 +78,9 @@ Writeln(Format('Pendentes: %d, OK: %d, Falhos: %d',
 Para batches que sobrevivem a restarts do processo:
 
 ```pascal
-LStore := TSidekiqRedis4DStateStore.New
+LStore := THefestoRedis4DStateStore.New
   .ConnectionString('redis://localhost:6379');
-LBatchStore := TSidekiqStateStoreBatchStore.New(LStore);
+LBatchStore := THefestoStateStoreBatchStore.New(LStore);
 ```
 
 Ver receita completa em [06-receitas/batch-com-callback.md](../06-receitas/batch-com-callback.md).

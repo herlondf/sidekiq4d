@@ -1,13 +1,13 @@
-# Retry e Dead Letter Queue
+﻿# Retry e Dead Letter Queue
 
 ## Políticas disponíveis
 
-### TSidekiqSimpleRetryPolicy
+### THefestoSimpleRetryPolicy
 
 Delay fixo entre tentativas.
 
 ```pascal
-TSidekiqSimpleRetryPolicy.New(
+THefestoSimpleRetryPolicy.New(
   MaxAttempts,   // número máximo de tentativas
   DelaySeconds   // segundos de espera entre tentativas
 )
@@ -15,15 +15,15 @@ TSidekiqSimpleRetryPolicy.New(
 
 Exemplo: 3 tentativas com 30 segundos de intervalo:
 ```pascal
-.RetryPolicy(TSidekiqSimpleRetryPolicy.New(3, 30))
+.RetryPolicy(THefestoSimpleRetryPolicy.New(3, 30))
 ```
 
-### TSidekiqExponentialRetryPolicy
+### THefestoExponentialRetryPolicy
 
 Delay cresce com o quadrado do número da tentativa.
 
 ```pascal
-TSidekiqExponentialRetryPolicy.New(
+THefestoExponentialRetryPolicy.New(
   MaxAttempts,      // número máximo de tentativas
   BaseSeconds,      // base do cálculo exponencial
   MaxDelaySeconds   // teto máximo do delay
@@ -44,7 +44,7 @@ TSidekiqExponentialRetryPolicy.New(
 
 Configuração recomendada para produção:
 ```pascal
-.RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
+.RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
 ```
 
 ## Dead Letter Queue (DLQ)
@@ -71,7 +71,7 @@ Para desabilitar retry (falhas vão direto para DLQ):
 ```pascal
 // Não configurar .RetryPolicy — padrão é sem retry
 // OU usar MaxAttempts = 1:
-.RetryPolicy(TSidekiqSimpleRetryPolicy.New(1, 0))
+.RetryPolicy(THefestoSimpleRetryPolicy.New(1, 0))
 ```
 
 ## Telemetria de retry

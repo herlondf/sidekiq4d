@@ -1,4 +1,4 @@
-# Receita: Servidor Básico (InMemory)
+﻿# Receita: Servidor Básico (InMemory)
 
 Servidor mínimo funcional sem dependências externas.
 
@@ -9,18 +9,18 @@ program ServidorBasico;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 type
-  TSendEmailHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TSendEmailHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TSendEmailHandler.CanHandle(const AAction: string): Boolean;
@@ -28,30 +28,30 @@ begin
   Result := AAction = 'send_email';
 end;
 
-procedure TSendEmailHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TSendEmailHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Enviando email: ', AJob.Body);
   // Aqui vai a lógica real
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
 
-  LStore := TSidekiqInMemoryStateStore.New;
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LStore := THefestoInMemoryStateStore.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(2)
     .IdleDelayMs(500)
     .StateStore(LStore)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(3, 10, 300))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(3, 10, 300))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('send_email', TSendEmailHandler.Create)
     .Run;
 

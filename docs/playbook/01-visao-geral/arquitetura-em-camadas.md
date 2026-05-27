@@ -1,4 +1,4 @@
-# Arquitetura em Camadas
+﻿# Arquitetura em Camadas
 
 ## Diagrama
 
@@ -6,7 +6,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │                    Aplicação / Host                      │
 ├─────────────────────────────────────────────────────────┤
-│              ISidekiqServer  (API pública)               │
+│              IHefestoServer  (API pública)               │
 ├───────────────┬─────────────────────────────────────────┤
 │  Core Engine  │  Features                               │
 │               │                                         │
@@ -46,27 +46,27 @@ O core nunca importa units de adapters ou brokers externos. Isso garante que o f
 
 | Unit | Responsabilidade |
 |------|-----------------|
-| `Sidekiq4D.Job` | Envelope de job (`TSidekiqJobEnvelope`), serialização |
-| `Sidekiq4D.Handler` | Interface `ISidekiqJobHandler`, base `TBaseSidekiqHandler` |
-| `Sidekiq4D.Dispatcher` | Roteamento de jobs para handlers registrados |
-| `Sidekiq4D.Server` | `TSidekiqServer` — ponto de entrada principal |
-| `Sidekiq4D.Executor` | Execução de um job único com tratamento de erro |
-| `Sidekiq4D.WorkerPool` | Pool de threads para execução paralela |
+| `Hefesto.Job` | Envelope de job (`THefestoJobEnvelope`), serialização |
+| `Hefesto.Handler` | Interface `IHefestoJobHandler`, base `TBaseHefestoHandler` |
+| `Hefesto.Dispatcher` | Roteamento de jobs para handlers registrados |
+| `Hefesto.Server` | `THefestoServer` — ponto de entrada principal |
+| `Hefesto.Executor` | Execução de um job único com tratamento de erro |
+| `Hefesto.WorkerPool` | Pool de threads para execução paralela |
 
 ## Interfaces públicas
 
 | Interface | Arquivo |
 |-----------|---------|
-| `ISidekiqServer` | `Sidekiq4D.Server` |
-| `ISidekiqQueueAdapter` | `Sidekiq4D.Queue.Interfaces` |
-| `ISidekiqStateStore` | `Sidekiq4D.Store.Interfaces` |
-| `ISidekiqJobHandler` | `Sidekiq4D.Handler` |
-| `ISidekiqTelemetry` | `Sidekiq4D.Telemetry` |
-| `ISidekiqRetryPolicy` | `Sidekiq4D.Retry` |
-| `ISidekiqScheduledStore` | `Sidekiq4D.Scheduled` |
-| `ISidekiqIdempotency` | `Sidekiq4D.Idempotency` |
-| `ISidekiqRateLimiter` | `Sidekiq4D.RateLimit` |
-| `ISidekiqLockProvider` | `Sidekiq4D.Locking` |
+| `IHefestoServer` | `Hefesto.Server` |
+| `IHefestoQueueAdapter` | `Hefesto.Queue.Interfaces` |
+| `IHefestoStateStore` | `Hefesto.Store.Interfaces` |
+| `IHefestoJobHandler` | `Hefesto.Handler` |
+| `IHefestoTelemetry` | `Hefesto.Telemetry` |
+| `IHefestoRetryPolicy` | `Hefesto.Retry` |
+| `IHefestoScheduledStore` | `Hefesto.Scheduled` |
+| `IHefestoIdempotency` | `Hefesto.Idempotency` |
+| `IHefestoRateLimiter` | `Hefesto.RateLimit` |
+| `IHefestoLockProvider` | `Hefesto.Locking` |
 
 ## Ciclo de vida de um job
 

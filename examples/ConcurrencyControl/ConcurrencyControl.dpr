@@ -1,4 +1,4 @@
-program ConcurrencyControl;
+﻿program ConcurrencyControl;
 
 {$APPTYPE CONSOLE}
 
@@ -10,52 +10,52 @@ program ConcurrencyControl;
 uses
   System.SysUtils,
   System.Classes,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.RateLimit,
-  Sidekiq4D.Unique,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Locking,
+  Hefesto.Idempotency,
+  Hefesto.RateLimit,
+  Hefesto.Unique,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TEmissaoHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TEmissaoHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TConsultaHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TConsultaHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TEmissaoHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TEmissaoHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'emissao';
 end;
 
-procedure TEmissaoHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TEmissaoHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [emissao] Processando nota: %s (thread %d)',
     [AContext.Job.Body, TThread.CurrentThread.ThreadID]));
   Sleep(100); // Simula trabalho
 end;
 
-function TConsultaHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TConsultaHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'consulta';
 end;
 
-procedure TConsultaHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TConsultaHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [consulta] Consultando: %s (thread %d)',
     [AContext.Job.Body, TThread.CurrentThread.ThreadID]));
@@ -63,18 +63,18 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  StateStore: ISidekiqStateStore;
-  Server: ISidekiqServer;
+  Queue: THefestoInMemoryQueueAdapter;
+  StateStore: IHefestoStateStore;
+  Server: IHefestoServer;
   I: Integer;
   Attrs: TStringList;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Concurrency Control');
+    WriteLn('Hefesto - Demo Concurrency Control');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
-    StateStore := TSidekiqInMemoryStateStore.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
+    StateStore := THefestoInMemoryStateStore.New;
 
     // --- Enfileirar jobs ---
     WriteLn('--- Enfileirando 10 emissoes + 5 consultas ---');
@@ -104,7 +104,7 @@ begin
     WriteLn('  Rate limit: 5 ops/10s para emissao');
     WriteLn('');
 
-    Server := TSidekiqServer.New
+    Server := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(5)
       .IdleDelayMs(0)
@@ -117,12 +117,12 @@ begin
 
       // State & providers
       .StateStore(StateStore)
-      .LockProvider(TSidekiqInMemoryLockProvider.New(StateStore))
-      .Idempotency(TSidekiqStateStoreIdempotency.New(StateStore))
-      .RateLimiter(TSidekiqTokenBucketRateLimiter.New(StateStore))
+      .LockProvider(THefestoInMemoryLockProvider.New(StateStore))
+      .Idempotency(THefestoStateStoreIdempotency.New(StateStore))
+      .RateLimiter(THefestoTokenBucketRateLimiter.New(StateStore))
 
       // Telemetry
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
 
       // Handlers
       .RegisterHandler('emissao', TEmissaoHandler.Create)

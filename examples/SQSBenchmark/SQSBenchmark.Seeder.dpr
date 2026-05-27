@@ -1,4 +1,4 @@
-program SQSBenchmarkSeeder;
+﻿program SQSBenchmarkSeeder;
 
 {$APPTYPE CONSOLE}
 
@@ -9,8 +9,8 @@ uses
   System.SysUtils,
   System.Diagnostics,
   System.Generics.Collections,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.SQS;
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.SQS;
 
 const
   QUEUE_URL = 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/benchmark-queue';
@@ -19,11 +19,11 @@ const
   REGION = 'us-east-1';
 
 var
-  Adapter: TSidekiqSqsQueueAdapter;
+  Adapter: THefestoSqsQueueAdapter;
   Watch: TStopwatch;
   Count: Integer;
   I: Integer;
-  Request: TSidekiqPublishRequest;
+  Request: THefestoPublishRequest;
 begin
   try
     Count := 200;
@@ -35,7 +35,7 @@ begin
     WriteLn(Format('Mensagens a publicar: %d', [Count]));
     WriteLn('');
 
-    Adapter := TSidekiqSqsQueueAdapter.New
+    Adapter := THefestoSqsQueueAdapter.New
       .QueueUrl(QUEUE_URL)
       .AccessKey(ACCESS_KEY)
       .SecretKey(SECRET_KEY)
@@ -52,7 +52,7 @@ begin
       Request.DelaySeconds := 0;
       SetLength(Request.Attributes, 0);
 
-      (Adapter as ISidekiqQueuePublisher).Publish(Request);
+      (Adapter as IHefestoQueuePublisher).Publish(Request);
 
       if (I mod 50) = 0 then
         Write(Format('  %d/%d publicadas...'#13, [I, Count]));

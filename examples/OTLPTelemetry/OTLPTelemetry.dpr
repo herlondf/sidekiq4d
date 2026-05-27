@@ -1,9 +1,9 @@
-program OTLPTelemetry;
+﻿program OTLPTelemetry;
 
 {$APPTYPE CONSOLE}
 
 {
-  Exemplo: Sidekiq4D.Telemetry.OTLP — OpenTelemetry Trace Exporter
+  Exemplo: Hefesto.Telemetry.OTLP — OpenTelemetry Trace Exporter
 
   Demonstra como enviar traces de jobs para um coletor OTLP/HTTP.
   Compativel com: Jaeger v2+, Grafana Tempo, Honeycomb, OTel Collector.
@@ -22,18 +22,18 @@ program OTLPTelemetry;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Telemetry        in '..\..\src\Sidekiq4D.Telemetry.pas',
-  Sidekiq4D.Telemetry.OTLP   in '..\..\src\adapters\Sidekiq4D.Telemetry.OTLP.pas',
-  Sidekiq4D.Job              in '..\..\src\Sidekiq4D.Job.pas';
+  Hefesto.Telemetry        in '..\..\src\Hefesto.Telemetry.pas',
+  Hefesto.Telemetry.OTLP   in '..\..\src\adapters\Hefesto.Telemetry.OTLP.pas',
+  Hefesto.Job              in '..\..\src\Hefesto.Job.pas';
 
 procedure SimulateJobLifecycle(
-  const ATelemetry: ISidekiqTelemetry;
+  const ATelemetry: IHefestoTelemetry;
   const AId, AAction, AQueue: string;
   const AShouldFail: Boolean);
 var
-  LJob: ISidekiqJobEnvelope;
+  LJob: IHefestoJobEnvelope;
 begin
-  LJob := TSidekiqJobEnvelope.New(AId, AQueue, '', '{}', AAction, 1);
+  LJob := THefestoJobEnvelope.New(AId, AQueue, '', '{}', AAction, 1);
 
   WriteLn(Format('[%s] iniciando job "%s" na fila "%s"...', [AAction, AId, AQueue]));
   ATelemetry.JobStarted(LJob);
@@ -60,7 +60,7 @@ begin
 end;
 
 var
-  LTelemetry: ISidekiqTelemetry;
+  LTelemetry: IHefestoTelemetry;
   LOTLPEndpoint: string;
 begin
   Randomize;
@@ -70,14 +70,14 @@ begin
     LOTLPEndpoint := ParamStr(1);
 
   WriteLn('====================================================');
-  WriteLn('  Sidekiq4D — OTLP Trace Exporter Example');
+  WriteLn('  Hefesto — OTLP Trace Exporter Example');
   WriteLn('====================================================');
   WriteLn('Endpoint: ', LOTLPEndpoint);
   WriteLn;
 
-  LTelemetry := TSidekiqCompositeTelemetry.New([
-    TSidekiqConsoleTelemetry.New,
-    TSidekiqOTLPTraceTelemetry.New(LOTLPEndpoint, 'sidekiq4d-demo', 'console-01')
+  LTelemetry := THefestoCompositeTelemetry.New([
+    THefestoConsoleTelemetry.New,
+    THefestoOTLPTraceTelemetry.New(LOTLPEndpoint, 'sidekiq4d-demo', 'console-01')
   ]);
 
   LTelemetry.ServerStarted;

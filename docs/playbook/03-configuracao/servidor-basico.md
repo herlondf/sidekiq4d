@@ -1,25 +1,25 @@
-# Configuração do Servidor
+﻿# Configuração do Servidor
 
 ## API fluente — visão geral
 
 ```pascal
 uses
-  Sidekiq4D.Server,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Idempotency,
+  Hefesto.Telemetry.Console;
 
 var
-  LStore: ISidekiqStateStore;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LServer: IHefestoServer;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
+  LStore := THefestoInMemoryStateStore.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     // --- Queue ---
-    .UseQueue(TSidekiqInMemoryQueueAdapter.New)
+    .UseQueue(THefestoInMemoryQueueAdapter.New)
 
     // --- Concorrência ---
     .Concurrency(4)        // threads de worker
@@ -30,13 +30,13 @@ begin
     .StateStore(LStore)
 
     // --- Idempotência (opcional) ---
-    .Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
+    .Idempotency(THefestoStateStoreIdempotency.New(LStore))
 
     // --- Retry + Dead Letter ---
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
 
     // --- Telemetria ---
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .Telemetry(THefestoConsoleTelemetry.New)
 
     // --- Handlers ---
     .RegisterHandler('send_email', TSendEmailHandler.Create)
@@ -77,10 +77,10 @@ end;
 
 ```pascal
 type
-  TSendEmailHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TSendEmailHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TSendEmailHandler.CanHandle(const AAction: string): Boolean;
@@ -88,7 +88,7 @@ begin
   Result := AAction = 'send_email';
 end;
 
-procedure TSendEmailHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TSendEmailHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // AJob.Body contém o JSON do payload
   // AJob.Action contém a action string

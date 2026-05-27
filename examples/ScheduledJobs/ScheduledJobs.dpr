@@ -1,4 +1,4 @@
-program ScheduledJobs;
+﻿program ScheduledJobs;
 
 {$APPTYPE CONSOLE}
 
@@ -9,69 +9,69 @@ program ScheduledJobs;
 uses
   System.SysUtils,
   System.DateUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Scheduled,
-  Sidekiq4D.Periodic,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Scheduled,
+  Hefesto.Periodic,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TReportHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TReportHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TCleanupHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TCleanupHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TReportHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TReportHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'report';
 end;
 
-procedure TReportHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TReportHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [%s] Gerando relatorio: %s',
     [FormatDateTime('hh:nn:ss', Now), AContext.Job.Body]));
 end;
 
-function TCleanupHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TCleanupHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'cleanup';
 end;
 
-procedure TCleanupHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TCleanupHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [%s] Executando limpeza periodica',
     [FormatDateTime('hh:nn:ss', Now)]));
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  Server: ISidekiqServer;
+  Queue: THefestoInMemoryQueueAdapter;
+  Server: IHefestoServer;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Scheduled & Periodic Jobs');
+    WriteLn('Hefesto - Demo Scheduled & Periodic Jobs');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
-    Server := TSidekiqServer.New
+    Server := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(100)
       .MaxCycles(10)
-      .ScheduledStore(TSidekiqInMemoryScheduledStore.New)
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .ScheduledStore(THefestoInMemoryScheduledStore.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('report', TReportHandler.Create)
       .RegisterHandler('cleanup', TCleanupHandler.Create);
 

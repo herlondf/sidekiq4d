@@ -1,17 +1,17 @@
-# State Stores
+﻿# State Stores
 
-Implementam `ISidekiqStateStore` (`src/Sidekiq4D.Store.Interfaces.pas`). Usados por features como idempotência, rate limiting, leader election e scheduled jobs.
+Implementam `IHefestoStateStore` (`src/Hefesto.Store.Interfaces.pas`). Usados por features como idempotência, rate limiting, leader election e scheduled jobs.
 
 ## Tabela
 
 | Store | Unit | Dependência externa | Persistência |
 |-------|------|--------------------|----|
-| `TSidekiqInMemoryStateStore` | `Sidekiq4D.Store.InMemory` | Nenhuma | Não |
-| `TSidekiqRedis4DStateStore` | `Sidekiq4D.Store.Redis4D` | Redis4D | Sim |
-| `TSidekiqRedisSentinelStateStore` | `Sidekiq4D.Store.RedisSentinel` | Redis Sentinel | Sim |
-| `TSidekiqPostgreSQLStateStore` | `Sidekiq4D.Store.PostgreSQL` | FireDAC + PostgreSQL | Sim |
-| `TSidekiqMongoDBStateStore` | `Sidekiq4D.Store.MongoDB` | MongoDB Atlas HTTP API | Sim |
-| `TSidekiqFireDACStateStore` | `Sidekiq4D.Store.FireDAC` | FireDAC (qualquer banco) | Sim |
+| `THefestoInMemoryStateStore` | `Hefesto.Store.InMemory` | Nenhuma | Não |
+| `THefestoRedis4DStateStore` | `Hefesto.Store.Redis4D` | Redis4D | Sim |
+| `THefestoRedisSentinelStateStore` | `Hefesto.Store.RedisSentinel` | Redis Sentinel | Sim |
+| `THefestoPostgreSQLStateStore` | `Hefesto.Store.PostgreSQL` | FireDAC + PostgreSQL | Sim |
+| `THefestoMongoDBStateStore` | `Hefesto.Store.MongoDB` | MongoDB Atlas HTTP API | Sim |
+| `THefestoFireDACStateStore` | `Hefesto.Store.FireDAC` | FireDAC (qualquer banco) | Sim |
 
 ## Quando usar cada um
 
@@ -27,10 +27,10 @@ Implementam `ISidekiqStateStore` (`src/Sidekiq4D.Store.Interfaces.pas`). Usados 
 
 **FireDAC** — genérico para qualquer banco suportado pelo FireDAC (SQLite, Oracle, MySQL, Interbase). SQLite é opção leve para single-process com persistência.
 
-## Interface ISidekiqStateStore
+## Interface IHefestoStateStore
 
 ```pascal
-ISidekiqStateStore = interface
+IHefestoStateStore = interface
   function Get(const AKey: string): string;
   procedure Put(const AKey, AValue: string);
   procedure Delete(const AKey: string);
@@ -44,7 +44,7 @@ end;
 
 ## Nota sobre leader election
 
-Leader election distribuída requer `TryPutIfAbsent` atômica em múltiplos processos. `TSidekiqInMemoryStateStore` só funciona para leader election dentro do mesmo processo. Para múltiplos hosts, use Redis4D ou PostgreSQL.
+Leader election distribuída requer `TryPutIfAbsent` atômica em múltiplos processos. `THefestoInMemoryStateStore` só funciona para leader election dentro do mesmo processo. Para múltiplos hosts, use Redis4D ou PostgreSQL.
 
 ## Como implementar um store próprio
 

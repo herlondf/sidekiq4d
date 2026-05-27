@@ -1,4 +1,4 @@
-# Receita: Servidor com AWS SQS
+﻿# Receita: Servidor com AWS SQS
 
 Requer conta AWS com fila SQS criada e credenciais configuradas.
 
@@ -9,18 +9,18 @@ program ServidorSQS;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.SQS,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.SQS,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 type
-  TProcessOrderHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TProcessOrderHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TProcessOrderHandler.CanHandle(const AAction: string): Boolean;
@@ -28,17 +28,17 @@ begin
   Result := AAction = 'process_order';
 end;
 
-procedure TProcessOrderHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TProcessOrderHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Writeln('Processando pedido: ', AJob.Body);
 end;
 
 var
-  LServer: ISidekiqServer;
+  LServer: IHefestoServer;
 begin
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(
-      TSidekiqSQSQueueAdapter.New
+      THefestoSQSQueueAdapter.New
         .QueueUrl('https://sqs.us-east-1.amazonaws.com/123456789/minha-fila')
         .Region('us-east-1')
         .AccessKeyId(GetEnvironmentVariable('AWS_ACCESS_KEY_ID'))
@@ -47,9 +47,9 @@ begin
         .MaxMessages(10)        // batch de fetch
     )
     .Concurrency(4)
-    .StateStore(TSidekiqInMemoryStateStore.New)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .StateStore(THefestoInMemoryStateStore.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('process_order', TProcessOrderHandler.Create)
     .Run;
 

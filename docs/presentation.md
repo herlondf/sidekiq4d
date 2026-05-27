@@ -1,12 +1,12 @@
-# Sidekiq4D — Async Job Framework for Delphi
+﻿# Hefesto — Async Job Framework for Delphi
 
 <p align="center">
-  <img src="logo.png" alt="Sidekiq4D" width="180">
+  <img src="logo.png" alt="Hefesto" width="180">
 </p>
 
 <p align="center">
   <strong>Framework de processamento assincrono de jobs para Delphi</strong><br>
-  Inspirado no Sidekiq Ruby. Implementado nativamente em Object Pascal.
+  Inspirado no Hefesto Ruby. Implementado nativamente em Object Pascal.
 </p>
 
 ---
@@ -50,13 +50,13 @@ end;
 ## A Solucao
 
 ```pascal
-TSidekiqServer.New
+THefestoServer.New
   .UseQueue(MySQSAdapter)
   .Concurrency(4)
   .BatchSize(10)
   .WaitTimeSeconds(5)
-  .RetryPolicy(TSidekiqSimpleRetryPolicy.New(5, 30))
-  .Telemetry(TSidekiqConsoleTelemetry.New)
+  .RetryPolicy(THefestoSimpleRetryPolicy.New(5, 30))
+  .Telemetry(THefestoConsoleTelemetry.New)
   .RegisterHandler('emissao', TEmissaoHandler.Create)
   .Run;
 ```
@@ -67,7 +67,7 @@ TSidekiqServer.New
 
 ## Antes vs Depois
 
-| | Loop Manual | Sidekiq4D |
+| | Loop Manual | Hefesto |
 |---|---|---|
 | **Linhas de codigo** | 30-50 por worker | 10-15 |
 | **Fetch** | 1 msg/request | 10 msgs/request |
@@ -83,7 +83,7 @@ TSidekiqServer.New
 
 200 mensagens, trabalho simulado de 50ms por mensagem:
 
-| Metrica | Sem Sidekiq4D | Com Sidekiq4D | Ganho |
+| Metrica | Sem Hefesto | Com Hefesto | Ganho |
 |---------|:---:|:---:|:---:|
 | **Throughput** | 3,6 msgs/s | **15,1 msgs/s** | **4,2x** |
 | **Tempo total** | 56,1s | **13,2s** | **4,3x** |
@@ -102,23 +102,23 @@ TSidekiqServer.New
 Aplicacao Delphi
   |
   v
-TSidekiqServer (API fluente)
+THefestoServer (API fluente)
   |
-  +-- ISidekiqQueueAdapter (InMemory, SQS, RabbitMQ, Kafka, TCP, HTTP...)
+  +-- IHefestoQueueAdapter (InMemory, SQS, RabbitMQ, Kafka, TCP, HTTP...)
   |
-  +-- ISidekiqJobDispatcher (routing por action)
+  +-- IHefestoJobDispatcher (routing por action)
   |
-  +-- ISidekiqServerMiddleware[] (pipeline encadeavel)
+  +-- IHefestoServerMiddleware[] (pipeline encadeavel)
   |
   +-- TWorkerPool (concorrencia N threads)
   |     |
-  |     +-- ISidekiqJobHandler.Perform()
+  |     +-- IHefestoJobHandler.Perform()
   |
-  +-- ISidekiqAckPolicy (ack apos sucesso)
-  +-- ISidekiqRetryPolicy (backoff / DLQ)
-  +-- ISidekiqTelemetry (eventos de ciclo de vida)
-  +-- ISidekiqStateStore (persistencia distribuida)
-  +-- ISidekiqLockProvider (locks com TTL)
+  +-- IHefestoAckPolicy (ack apos sucesso)
+  +-- IHefestoRetryPolicy (backoff / DLQ)
+  +-- IHefestoTelemetry (eventos de ciclo de vida)
+  +-- IHefestoStateStore (persistencia distribuida)
+  +-- IHefestoLockProvider (locks com TTL)
 ```
 
 **Principio:** cada componente atras de interface. Troque o adapter sem mudar o handler.
@@ -139,7 +139,7 @@ TSidekiqServer (API fluente)
 | **HTTP Ingress** | Indy HTTP Server | Webhooks, telemetria |
 | **TCP** | Indy ou Synapse | Apps Delphi legadas, IoT |
 
-**Plugavel:** implemente `ISidekiqQueueAdapter` (5 metodos) para qualquer broker.
+**Plugavel:** implemente `IHefestoQueueAdapter` (5 metodos) para qualquer broker.
 
 ---
 
@@ -160,7 +160,7 @@ TSidekiqServer (API fluente)
 
 ### Retry & Dead-Letter
 ```pascal
-.RetryPolicy(TSidekiqSimpleRetryPolicy.New(5, 30))
+.RetryPolicy(THefestoSimpleRetryPolicy.New(5, 30))
 // 5 tentativas, 30s entre cada
 // Apos 5: move para dead-letter automaticamente
 ```
@@ -207,7 +207,7 @@ Attrs.Values['unique_strategy'] := 'until_executed';
 
 ### Rate Limiting
 ```pascal
-.RateLimiter(TSidekiqTokenBucketRateLimiter.New(StateStore))
+.RateLimiter(THefestoTokenBucketRateLimiter.New(StateStore))
 // Token bucket: 100 requests por 60 segundos por chave
 ```
 
@@ -225,7 +225,7 @@ Attrs.Values['unique_strategy'] := 'until_executed';
 
 ### Client Reliability (Outbox)
 ```pascal
-.ClientOutbox(TSidekiqFileClientOutbox.New('outbox.json'))
+.ClientOutbox(THefestoFileClientOutbox.New('outbox.json'))
 // Jobs sobrevivem a crash do processo
 // Flush automatico a cada ciclo
 ```
@@ -239,7 +239,7 @@ Attrs.Values['unique_strategy'] := 'until_executed';
 
 ### Circuit Breaker
 ```pascal
-.UseServerMiddleware(TSidekiqCircuitBreakerMiddleware.New
+.UseServerMiddleware(THefestoCircuitBreakerMiddleware.New
   .FailureThreshold(5)
   .CooldownSeconds(60))
 // Protege providers externos de cascata de falhas
@@ -252,7 +252,7 @@ Attrs.Values['unique_strategy'] := 'until_executed';
 Pipeline encadeavel que executa antes (client) ou durante (server) cada job:
 
 ```pascal
-TSidekiqServer.New
+THefestoServer.New
   // Client: roda antes de publicar
   .UseClientMiddleware(TLoggingClientMiddleware.Create)
 
@@ -273,7 +273,7 @@ TSidekiqServer.New
 | Prometheus | Server | Counters + histogram |
 | Circuit Breaker | Server | Open/closed/half-open por action |
 
-**Crie o seu:** implemente `ISidekiqServerMiddleware` (1 metodo: `Call`).
+**Crie o seu:** implemente `IHefestoServerMiddleware` (1 metodo: `Call`).
 
 ---
 
@@ -303,27 +303,27 @@ job.retried / job.dead_lettered / job.acked
 ### Implementacoes
 ```pascal
 // Console (desenvolvimento)
-.Telemetry(TSidekiqConsoleTelemetry.New)
+.Telemetry(THefestoConsoleTelemetry.New)
 
 // StatsD (producao)
-.Telemetry(TSidekiqMetricsTelemetry.New('statsd://localhost:8125'))
+.Telemetry(THefestoMetricsTelemetry.New('statsd://localhost:8125'))
 
 // Composto (ambos)
-.Telemetry(TSidekiqCompositeTelemetry.New([Console, StatsD]))
+.Telemetry(THefestoCompositeTelemetry.New([Console, StatsD]))
 ```
 
 ### Middleware Prometheus
 ```pascal
-var Prom := TSidekiqPrometheusMiddleware.New;
+var Prom := THefestoPrometheusMiddleware.New;
 Server.UseServerMiddleware(Prom);
 // Depois: Prom.Expose retorna metricas em formato Prometheus text
 ```
 
 ---
 
-## Comparativo com Sidekiq Ruby
+## Comparativo com Hefesto Ruby
 
-| Feature | Sidekiq OSS | Sidekiq Pro | Sidekiq Enterprise | **Sidekiq4D** |
+| Feature | Hefesto OSS | Hefesto Pro | Hefesto Enterprise | **Hefesto** |
 |---------|:-:|:-:|:-:|:-:|
 | Job processing | x | x | x | **x** |
 | Retry/backoff | x | x | x | **x** |
@@ -340,7 +340,7 @@ Server.UseServerMiddleware(Prom);
 | Multi-queue | | | x | **x** |
 | **Preco** | Gratis | $99/mo | $179/mo | **Gratis** |
 
-> Sidekiq4D inclui todas as features Pro + Enterprise **sem custo**.
+> Hefesto inclui todas as features Pro + Enterprise **sem custo**.
 
 ---
 
@@ -365,7 +365,7 @@ Server.UseServerMiddleware(Prom);
 ### 1. Clone
 
 ```bash
-git clone https://github.com/herlondf/sidekiq4d.git
+git clone https://github.com/herlondf/hefesto.git
 ```
 
 ### 2. Adicione ao search path
@@ -378,17 +378,17 @@ sidekiq4d/src/
 
 ```pascal
 type
-  TMyHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TMyHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TMyHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TMyHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'my_action';
 end;
 
-procedure TMyHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TMyHandler.Perform(const AContext: IHefestoJobContext);
 begin
   // Sua logica aqui
   ProcessData(AContext.Job.Body);
@@ -398,10 +398,10 @@ end;
 ### 4. Configure o servidor
 
 ```pascal
-var Queue := TSidekiqInMemoryQueueAdapter.New;
+var Queue := THefestoInMemoryQueueAdapter.New;
 Queue.Enqueue('my_action', '{"data":"hello"}');
 
-TSidekiqServer.New
+THefestoServer.New
   .UseQueue(Queue)
   .RegisterHandler('my_action', TMyHandler.Create)
   .Run;
@@ -452,7 +452,7 @@ TSidekiqServer.New
 ## Contribuindo
 
 - **License:** BSD
-- **GitHub:** github.com/herlondf/sidekiq4d
+- **GitHub:** github.com/herlondf/hefesto
 - **Issues:** bug reports, feature requests
 - **PRs:** novos adapters, middlewares, stores
 
@@ -466,8 +466,8 @@ TSidekiqServer.New
 ---
 
 <p align="center">
-  <img src="logo.png" alt="Sidekiq4D" width="120"><br>
-  <strong>Sidekiq4D</strong><br>
+  <img src="logo.png" alt="Hefesto" width="120"><br>
+  <strong>Hefesto</strong><br>
   <em>Async Job Framework for Delphi</em><br><br>
-  github.com/herlondf/sidekiq4d
+  github.com/herlondf/hefesto
 </p>

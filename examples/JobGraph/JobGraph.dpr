@@ -1,9 +1,9 @@
-program JobGraph;
+﻿program JobGraph;
 
 {$APPTYPE CONSOLE}
 
 {
-  Exemplo: Sidekiq4D.Graph — Job Graph com dependências (DAG)
+  Exemplo: Hefesto.Graph — Job Graph com dependências (DAG)
 
   Topologia demonstrada (diamante):
 
@@ -25,14 +25,14 @@ program JobGraph;
 uses
   System.SysUtils,
   System.SyncObjs,
-  Sidekiq4D.Graph in '..\..\src\Sidekiq4D.Graph.pas';
+  Hefesto.Graph in '..\..\src\Hefesto.Graph.pas';
 
 procedure RunSuccessPipeline;
 begin
   WriteLn('--- Cenário 1: Sucesso completo ---');
   WriteLn;
 
-  TSidekiqJobGraph.New
+  THefestoJobGraph.New
     .AddNode('extract',
       procedure
       begin
@@ -82,7 +82,7 @@ begin
   WriteLn('--- Cenário 2: Falha em validate → save-db cancelado ---');
   WriteLn;
 
-  TSidekiqJobGraph.New
+  THefestoJobGraph.New
     .AddNode('extract',
       procedure
       begin
@@ -137,7 +137,7 @@ begin
   LLog  := '';
   LLock := TCriticalSection.Create;
   try
-    TSidekiqJobGraph.New
+    THefestoJobGraph.New
       .AddNode('extract',
         procedure
         begin
@@ -194,7 +194,7 @@ end;
 
 begin
   WriteLn('====================================================');
-  WriteLn('  Sidekiq4D — Job Graph / DAG Example');
+  WriteLn('  Hefesto — Job Graph / DAG Example');
   WriteLn('====================================================');
   WriteLn;
   try

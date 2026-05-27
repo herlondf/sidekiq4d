@@ -1,4 +1,4 @@
-# Self-Hosted Runner Setup — Sidekiq4D CI
+﻿# Self-Hosted Runner Setup — Hefesto CI
 
 ## Pre-requisitos na maquina
 
@@ -26,7 +26,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD\runner.zip", "$PWD")
 
 # 3. Configurar (obter token em Settings > Actions > Runners > New)
-.\config.cmd --url https://github.com/herlondf/sidekiq4d --token YOUR_TOKEN
+.\config.cmd --url https://github.com/herlondf/hefesto --token YOUR_TOKEN
 
 # 4. Instalar como servico Windows
 .\svc.cmd install
@@ -37,7 +37,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 ```powershell
 # O runner deve aparecer em:
-# https://github.com/herlondf/sidekiq4d/settings/actions/runners
+# https://github.com/herlondf/hefesto/settings/actions/runners
 ```
 
 ## Workflows

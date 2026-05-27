@@ -1,4 +1,4 @@
-program SqsConsole;
+﻿program SqsConsole;
 
 {$APPTYPE CONSOLE}
 
@@ -8,37 +8,37 @@ uses
   System.DateUtils,
   System.JSON,
   System.Threading,
-  Sidekiq4D.Job in '..\..\src\Sidekiq4D.Job.pas',
-  Sidekiq4D.Metadata in '..\..\src\Sidekiq4D.Metadata.pas',
-  Sidekiq4D.Context in '..\..\src\Sidekiq4D.Context.pas',
-  Sidekiq4D.Handler in '..\..\src\Sidekiq4D.Handler.pas',
-  Sidekiq4D.Options in '..\..\src\Sidekiq4D.Options.pas',
-  Sidekiq4D.Queue.Interfaces in '..\..\src\Sidekiq4D.Queue.Interfaces.pas',
-  Sidekiq4D.Queue.SQS in '..\..\src\adapters\Sidekiq4D.Queue.SQS.pas',
-  Sidekiq4D.Dispatcher in '..\..\src\Sidekiq4D.Dispatcher.pas',
-  Sidekiq4D.Retry in '..\..\src\Sidekiq4D.Retry.pas',
-  Sidekiq4D.Telemetry in '..\..\src\Sidekiq4D.Telemetry.pas',
-  Sidekiq4D.Server in '..\..\src\Sidekiq4D.Server.pas';
+  Hefesto.Job in '..\..\src\Hefesto.Job.pas',
+  Hefesto.Metadata in '..\..\src\Hefesto.Metadata.pas',
+  Hefesto.Context in '..\..\src\Hefesto.Context.pas',
+  Hefesto.Handler in '..\..\src\Hefesto.Handler.pas',
+  Hefesto.Options in '..\..\src\Hefesto.Options.pas',
+  Hefesto.Queue.Interfaces in '..\..\src\Hefesto.Queue.Interfaces.pas',
+  Hefesto.Queue.SQS in '..\..\src\adapters\Hefesto.Queue.SQS.pas',
+  Hefesto.Dispatcher in '..\..\src\Hefesto.Dispatcher.pas',
+  Hefesto.Retry in '..\..\src\Hefesto.Retry.pas',
+  Hefesto.Telemetry in '..\..\src\Hefesto.Telemetry.pas',
+  Hefesto.Server in '..\..\src\Hefesto.Server.pas';
 
 type
-  TConsoleJobHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TConsoleJobHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TFailingJobHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TFailingJobHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TSlowJobHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TSlowJobHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
     class function ResolveDelayMs(const ABody: string): Integer; static;
   public
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 function RequireEnv(const AName: string): string;
@@ -80,7 +80,7 @@ procedure PrintBanner(
   const AStopWhenIdle: Boolean;
   const ARollingRestartAfterMs: Integer);
 begin
-  Writeln('=== Sidekiq4D SQS Demo ===');
+  Writeln('=== Hefesto SQS Demo ===');
   Writeln('Queue...............: ' + AQueueName);
   Writeln('Demo seed...........: ' + BoolToStr(ADemoSeed, True));
   Writeln('Scenario set........: ' + AScenarioSet);
@@ -91,7 +91,7 @@ begin
 end;
 
 procedure SeedFullScenarioSet(
-  const AServer: ISidekiqServer;
+  const AServer: IHefestoServer;
   const AQueueName: string);
 var
   LSlowAttributes: TStringList;
@@ -103,10 +103,10 @@ begin
 
   LSlowAttributes := TStringList.Create;
   try
-    LSlowAttributes.Values[TSidekiqJobAttribute.IdempotencyKey] := 'demo:slow:001';
-    LSlowAttributes.Values[TSidekiqJobAttribute.LockKey] := 'demo:slow:001';
-    LSlowAttributes.Values[TSidekiqJobAttribute.ServerLeaseTtlSeconds] := '6';
-    LSlowAttributes.Values[TSidekiqJobAttribute.HeartbeatIntervalSeconds] := '2';
+    LSlowAttributes.Values[THefestoJobAttribute.IdempotencyKey] := 'demo:slow:001';
+    LSlowAttributes.Values[THefestoJobAttribute.LockKey] := 'demo:slow:001';
+    LSlowAttributes.Values[THefestoJobAttribute.ServerLeaseTtlSeconds] := '6';
+    LSlowAttributes.Values[THefestoJobAttribute.HeartbeatIntervalSeconds] := '2';
     AServer.Enqueue(
       AQueueName,
       'demo.slow',
@@ -129,7 +129,7 @@ begin
 
   LExpiredAttributes := TStringList.Create;
   try
-    LExpiredAttributes.Values[TSidekiqJobAttribute.ExpiresInSeconds] := '1';
+    LExpiredAttributes.Values[THefestoJobAttribute.ExpiresInSeconds] := '1';
     AServer.EnqueueAt(
       AQueueName,
       'demo.success',
@@ -142,7 +142,7 @@ begin
 end;
 
 procedure SeedRollingRestartScenarioSet(
-  const AServer: ISidekiqServer;
+  const AServer: IHefestoServer;
   const AQueueName: string);
 var
   LSlowAttributes: TStringList;
@@ -150,10 +150,10 @@ begin
   Writeln('Seeding scenario set: rolling-restart');
   LSlowAttributes := TStringList.Create;
   try
-    LSlowAttributes.Values[TSidekiqJobAttribute.IdempotencyKey] := 'demo:drain:001';
-    LSlowAttributes.Values[TSidekiqJobAttribute.LockKey] := 'demo:drain:001';
-    LSlowAttributes.Values[TSidekiqJobAttribute.ServerLeaseTtlSeconds] := '6';
-    LSlowAttributes.Values[TSidekiqJobAttribute.HeartbeatIntervalSeconds] := '2';
+    LSlowAttributes.Values[THefestoJobAttribute.IdempotencyKey] := 'demo:drain:001';
+    LSlowAttributes.Values[THefestoJobAttribute.LockKey] := 'demo:drain:001';
+    LSlowAttributes.Values[THefestoJobAttribute.ServerLeaseTtlSeconds] := '6';
+    LSlowAttributes.Values[THefestoJobAttribute.HeartbeatIntervalSeconds] := '2';
     AServer.Enqueue(
       AQueueName,
       'demo.slow',
@@ -170,7 +170,7 @@ begin
 end;
 
 procedure SeedDemoScenarios(
-  const AServer: ISidekiqServer;
+  const AServer: IHefestoServer;
   const AQueueName: string;
   const AScenarioSet: string);
 begin
@@ -181,7 +181,7 @@ begin
 end;
 
 procedure ScheduleRollingRestart(
-  const AServer: ISidekiqServer;
+  const AServer: IHefestoServer;
   const ADelayMs: Integer);
 begin
   if ADelayMs <= 0 then
@@ -200,12 +200,12 @@ end;
 
 { TConsoleJobHandler }
 
-function TConsoleJobHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TConsoleJobHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := True;
 end;
 
-procedure TConsoleJobHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TConsoleJobHandler.Perform(const AContext: IHefestoJobContext);
 begin
   Writeln(Format(
     '[handler:ok] queue=%s action=%s attempts=%d body=%s',
@@ -214,12 +214,12 @@ end;
 
 { TFailingJobHandler }
 
-function TFailingJobHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TFailingJobHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := SameText(AJob.Action, 'demo.fail');
 end;
 
-procedure TFailingJobHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TFailingJobHandler.Perform(const AContext: IHefestoJobContext);
 begin
   Writeln(Format(
     '[handler:fail] queue=%s action=%s attempts=%d body=%s',
@@ -229,12 +229,12 @@ end;
 
 { TSlowJobHandler }
 
-function TSlowJobHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TSlowJobHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := SameText(AJob.Action, 'demo.slow');
 end;
 
-procedure TSlowJobHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TSlowJobHandler.Perform(const AContext: IHefestoJobContext);
 var
   LDelayMs: Integer;
 begin
@@ -270,8 +270,8 @@ begin
 end;
 
 var
-  LQueueAdapter: TSidekiqSqsQueueAdapter;
-  LServer: ISidekiqServer;
+  LQueueAdapter: THefestoSqsQueueAdapter;
+  LServer: IHefestoServer;
   LStopWhenIdle: Boolean;
   LDemoSeed: Boolean;
   LScenarioSet: string;
@@ -284,7 +284,7 @@ begin
     LRollingRestartAfterMs := ReadEnvInt('SIDEKIQ_DEMO_ROLLING_RESTART_AFTER_MS', 0);
     LStopWhenIdle := ReadEnvBool('SIDEKIQ_STOP_WHEN_IDLE', not LDemoSeed);
 
-    LQueueAdapter := TSidekiqSqsQueueAdapter.New
+    LQueueAdapter := THefestoSqsQueueAdapter.New
       .QueueUrl(RequireEnv('SIDEKIQ_SQS_QUEUE_URL'))
       .AccessKey(RequireEnv('AWS_ACCESS_KEY_ID'))
       .SecretKey(RequireEnv('AWS_SECRET_ACCESS_KEY'))
@@ -304,16 +304,16 @@ begin
       LStopWhenIdle,
       LRollingRestartAfterMs);
 
-    LServer := TSidekiqServer.New
+    LServer := THefestoServer.New
       .UseQueue(LQueueAdapter)
       .BatchSize(ReadEnvInt('SIDEKIQ_BATCH_SIZE', 10))
       .WaitTimeSeconds(ReadEnvInt('SIDEKIQ_WAIT_TIME_SECONDS', 20))
       .VisibilityTimeout(ReadEnvInt('SIDEKIQ_VISIBILITY_TIMEOUT', 300))
       .IdleDelayMs(ReadEnvInt('SIDEKIQ_IDLE_DELAY_MS', 1000))
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(
         ReadEnvInt('SIDEKIQ_RETRY_ATTEMPTS', 2),
         ReadEnvInt('SIDEKIQ_RETRY_DELAY_SECONDS', 5)))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('demo.fail', TFailingJobHandler.Create)
       .RegisterHandler('demo.slow', TSlowJobHandler.Create)
       .RegisterHandler('*', TConsoleJobHandler.Create);

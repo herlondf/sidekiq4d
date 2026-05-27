@@ -1,4 +1,4 @@
-program BatchJobs;
+﻿program BatchJobs;
 
 {$APPTYPE CONSOLE}
 
@@ -9,70 +9,70 @@ program BatchJobs;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Batch,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Batch,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TImportHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TImportHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TNotifyHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TNotifyHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TImportHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TImportHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'import';
 end;
 
-procedure TImportHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TImportHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  Importando: %s', [AContext.Job.Body]));
 end;
 
-function TNotifyHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TNotifyHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'notify';
 end;
 
-procedure TNotifyHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TNotifyHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  >>> CALLBACK: Batch concluido! Enviando notificacao: %s',
     [AContext.Job.Body]));
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  Server: ISidekiqServer;
-  Batch: ISidekiqBatch;
+  Queue: THefestoInMemoryQueueAdapter;
+  Server: IHefestoServer;
+  Batch: IHefestoBatch;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Batch Jobs');
+    WriteLn('Hefesto - Demo Batch Jobs');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
-    Server := TSidekiqServer.New
+    Server := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
-      .StateStore(TSidekiqInMemoryStateStore.New)
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .StateStore(THefestoInMemoryStateStore.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('import', TImportHandler.Create)
       .RegisterHandler('notify', TNotifyHandler.Create);
 

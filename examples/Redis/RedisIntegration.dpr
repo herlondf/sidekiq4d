@@ -1,4 +1,4 @@
-program RedisIntegration;
+﻿program RedisIntegration;
 
 {$APPTYPE CONSOLE}
 
@@ -14,67 +14,67 @@ program RedisIntegration;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.Redis4D,
-  Sidekiq4D.Redis.Client,
-  Sidekiq4D.Redis4D.Client,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Locking.Redis4D,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Scheduled,
-  Sidekiq4D.Scheduled.Redis4D,
-  Sidekiq4D.ClientReliability,
-  Sidekiq4D.ClientReliability.Redis4D,
-  Sidekiq4D.RateLimit,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.Redis4D,
+  Hefesto.Redis.Client,
+  Hefesto.Redis4D.Client,
+  Hefesto.Locking,
+  Hefesto.Locking.Redis4D,
+  Hefesto.Idempotency,
+  Hefesto.Scheduled,
+  Hefesto.Scheduled.Redis4D,
+  Hefesto.ClientReliability,
+  Hefesto.ClientReliability.Redis4D,
+  Hefesto.RateLimit,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TPaymentHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TPaymentHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TPaymentHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TPaymentHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'payment';
 end;
 
-procedure TPaymentHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TPaymentHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [payment] Processando pagamento: %s', [AContext.Job.Body]));
   Sleep(100);
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  StateStore: ISidekiqStateStore;
-  Server: ISidekiqServer;
+  Queue: THefestoInMemoryQueueAdapter;
+  StateStore: IHefestoStateStore;
+  Server: IHefestoServer;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Redis Integration');
+    WriteLn('Hefesto - Demo Redis Integration');
     WriteLn('Requer Redis em localhost:6379');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
     // --- State Store Redis4D ---
     WriteLn('--- Configurando backends Redis4D ---');
 
-    StateStore := TSidekiqRedis4DStateStore.New
+    StateStore := THefestoRedis4DStateStore.New
       .RedisClient(TRedis4DClientBridge.NewFromConnectionString('redis://127.0.0.1:6379/0'));
     WriteLn('  StateStore: Redis4D (redis://127.0.0.1:6379/0)');
 
     // --- Servidor com todos os backends Redis ---
-    Server := TSidekiqServer.New
+    Server := THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
@@ -82,17 +82,17 @@ begin
 
       // Backends Redis4D
       .StateStore(StateStore)
-      .LockProvider(TSidekiqRedis4DLockProvider.New
+      .LockProvider(THefestoRedis4DLockProvider.New
         .ConnectionString('redis://127.0.0.1:6379/0'))
-      .ScheduledStore(TSidekiqRedis4DScheduledStore.New
+      .ScheduledStore(THefestoRedis4DScheduledStore.New
         .ConnectionString('redis://127.0.0.1:6379/0'))
-      .ClientOutbox(TSidekiqRedis4DClientOutbox.New
+      .ClientOutbox(THefestoRedis4DClientOutbox.New
         .ConnectionString('redis://127.0.0.1:6379/0'))
-      .Idempotency(TSidekiqStateStoreIdempotency.New(StateStore))
-      .RateLimiter(TSidekiqTokenBucketRateLimiter.New(StateStore))
+      .Idempotency(THefestoStateStoreIdempotency.New(StateStore))
+      .RateLimiter(THefestoTokenBucketRateLimiter.New(StateStore))
 
       // Telemetry
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .Telemetry(THefestoConsoleTelemetry.New)
 
       // Handler
       .RegisterHandler('payment', TPaymentHandler.Create);

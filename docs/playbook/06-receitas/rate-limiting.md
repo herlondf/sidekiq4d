@@ -1,4 +1,4 @@
-# Receita: Rate Limiting
+﻿# Receita: Rate Limiting
 
 Controlar a taxa de chamadas a uma API externa usando token bucket.
 
@@ -9,25 +9,25 @@ program RateLimiting;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.RateLimit,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.RateLimit,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 type
-  TAPICallHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TAPICallHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
-    FRateLimiter: ISidekiqRateLimiter;
+    FRateLimiter: IHefestoRateLimiter;
   public
-    constructor Create(const ARateLimiter: ISidekiqRateLimiter);
+    constructor Create(const ARateLimiter: IHefestoRateLimiter);
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-constructor TAPICallHandler.Create(const ARateLimiter: ISidekiqRateLimiter);
+constructor TAPICallHandler.Create(const ARateLimiter: IHefestoRateLimiter);
 begin
   inherited Create;
   FRateLimiter := ARateLimiter;
@@ -38,7 +38,7 @@ begin
   Result := AAction = 'api_call';
 end;
 
-procedure TAPICallHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TAPICallHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // Tentar adquirir 1 token do bucket 'external_api'
   if not FRateLimiter.TryAcquire('external_api', 1) then
@@ -50,25 +50,25 @@ begin
 end;
 
 var
-  LStore: ISidekiqStateStore;
-  LRateLimiter: ISidekiqRateLimiter;
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LStore: IHefestoStateStore;
+  LRateLimiter: IHefestoRateLimiter;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
   I: Integer;
 begin
-  LStore := TSidekiqInMemoryStateStore.New;
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LStore := THefestoInMemoryStateStore.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
   // Bucket: capacidade 10, reabastece 2 tokens/segundo
   // Máximo: 10 chamadas em burst, 2 chamadas/segundo em regime permanente
-  LRateLimiter := TSidekiqTokenBucketRateLimiter.New(LStore, 10, 2);
+  LRateLimiter := THefestoTokenBucketRateLimiter.New(LStore, 10, 2);
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(8)  // muitos workers, mas rate limiter controla a taxa
     .StateStore(LStore)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 10, 300))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 10, 300))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('api_call', TAPICallHandler.Create(LRateLimiter))
     .Run;
 
@@ -85,7 +85,7 @@ end.
 **Rate limit por usuário (chaves dinâmicas):**
 
 ```pascal
-procedure TAPICallHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TAPICallHandler.Execute(const AJob: IHefestoJobEnvelope);
 var
   LUserId: string;
 begin

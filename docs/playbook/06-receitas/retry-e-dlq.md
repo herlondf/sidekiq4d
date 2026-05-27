@@ -1,4 +1,4 @@
-# Receita: Retry Exponencial e Dead Letter Queue
+﻿# Receita: Retry Exponencial e Dead Letter Queue
 
 Servidor com retry exponencial e inspeção de jobs na DLQ.
 
@@ -9,20 +9,20 @@ program RetryEDLQ;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 type
-  TFalhavelHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TFalhavelHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
     FTentativa: Integer;
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TFalhavelHandler.CanHandle(const AAction: string): Boolean;
@@ -30,7 +30,7 @@ begin
   Result := AAction = 'falha_simulada';
 end;
 
-procedure TFalhavelHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TFalhavelHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Inc(FTentativa);
   Writeln(Format('Tentativa %d para job %s', [FTentativa, AJob.JobId]));
@@ -43,18 +43,18 @@ begin
 end;
 
 var
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
 begin
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(1)
-    .StateStore(TSidekiqInMemoryStateStore.New)
+    .StateStore(THefestoInMemoryStateStore.New)
     // 5 tentativas: delay = 15 × n² segundos (máx 3600s)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(5, 15, 3600))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(5, 15, 3600))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('falha_simulada', TFalhavelHandler.Create)
     .Run;
 
@@ -67,7 +67,7 @@ begin
 end.
 ```
 
-**Delays esperados com TSidekiqExponentialRetryPolicy.New(5, 15, 3600):**
+**Delays esperados com THefestoExponentialRetryPolicy.New(5, 15, 3600):**
 ```
 Tentativa 1: execução imediata
 Tentativa 2: aguarda 15s  (15 × 1²)
@@ -80,7 +80,7 @@ Tentativa 5: aguarda 240s (15 × 4²)
 **Usando delay fixo:**
 ```pascal
 // 3 tentativas com 30 segundos entre cada
-.RetryPolicy(TSidekiqSimpleRetryPolicy.New(3, 30))
+.RetryPolicy(THefestoSimpleRetryPolicy.New(3, 30))
 ```
 
 **Inspecionando a DLQ via dashboard:**

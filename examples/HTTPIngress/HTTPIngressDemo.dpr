@@ -1,10 +1,10 @@
-program HTTPIngressDemo;
+﻿program HTTPIngressDemo;
 
 {$APPTYPE CONSOLE}
 
 // Demo: HTTP Ingress Queue Adapter
 //
-// Mostra como usar o Sidekiq4D como receptor HTTP que processa jobs
+// Mostra como usar o Hefesto como receptor HTTP que processa jobs
 // recebidos via REST. Ideal para:
 // - Agentes de telemetria
 // - Webhooks receivers
@@ -25,27 +25,27 @@ program HTTPIngressDemo;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Server,
-  Sidekiq4D.Ingress.HTTP,
-  Sidekiq4D.Ingress.HTTP.Indy;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Dispatcher,
+  Hefesto.Server,
+  Hefesto.Ingress.HTTP,
+  Hefesto.Ingress.HTTP.Indy;
 
 type
   // Handler que simplesmente loga os eventos recebidos
-  TLogHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TLogHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
     FProviderName: string;
   public
     constructor Create(const AName: string);
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 constructor TLogHandler.Create(const AName: string);
@@ -54,12 +54,12 @@ begin
   FProviderName := AName;
 end;
 
-function TLogHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TLogHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := SameText(AJob.Action, FProviderName);
 end;
 
-procedure TLogHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TLogHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [%s] Entregando evento: %s',
     [FProviderName, Copy(AContext.Job.Body, 1, 80)]));
@@ -70,10 +70,10 @@ const
   PORT = 9090;
 
 var
-  Ingress: TSidekiqHTTPIngressAdapter;
+  Ingress: THefestoHTTPIngressAdapter;
 begin
   try
-    WriteLn('Sidekiq4D - Demo HTTP Ingress');
+    WriteLn('Hefesto - Demo HTTP Ingress');
     WriteLn(Format('Escutando em http://%s:%d', [HOST, PORT]));
     WriteLn('');
     WriteLn('Endpoints:');
@@ -90,19 +90,19 @@ begin
     WriteLn('---');
 
     // Configura o ingress com 2 targets (cada evento gera 2 jobs)
-    Ingress := TSidekiqHTTPIngressAdapter.New
+    Ingress := THefestoHTTPIngressAdapter.New
       .Host(HOST)
       .Port(PORT)
       .Targets(['console-log', 'file-log'])
-      .UseHTTPServer(TSidekiqIndyHTTPServer.New);
+      .UseHTTPServer(THefestoIndyHTTPServer.New);
 
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Ingress)
       .Concurrency(2)
       .BatchSize(10)
       .IdleDelayMs(200)
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(3, 5))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(3, 5))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('console-log', TLogHandler.Create('console-log'))
       .RegisterHandler('file-log', TLogHandler.Create('file-log'))
       .Run;

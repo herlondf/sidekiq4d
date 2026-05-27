@@ -1,4 +1,4 @@
-program WebhookDispatcher;
+﻿program WebhookDispatcher;
 
 {$APPTYPE CONSOLE}
 
@@ -12,27 +12,27 @@ program WebhookDispatcher;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.InMemory,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TWebhookDeliveryHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TWebhookDeliveryHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
     FCallCount: Integer;
   public
     constructor Create;
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 { TWebhookDeliveryHandler }
@@ -43,12 +43,12 @@ begin
   FCallCount := 0;
 end;
 
-function TWebhookDeliveryHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TWebhookDeliveryHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'deliver_webhook';
 end;
 
-procedure TWebhookDeliveryHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TWebhookDeliveryHandler.Perform(const AContext: IHefestoJobContext);
 var
   LBody: string;
 begin
@@ -70,12 +70,12 @@ begin
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  StateStore: ISidekiqStateStore;
+  Queue: THefestoInMemoryQueueAdapter;
+  StateStore: IHefestoStateStore;
 begin
   try
     WriteLn('==============================================');
-    WriteLn(' Sidekiq4D Demo: Webhook Dispatcher');
+    WriteLn(' Hefesto Demo: Webhook Dispatcher');
     WriteLn('==============================================');
     WriteLn('');
     WriteLn('Configuration:');
@@ -83,8 +83,8 @@ begin
     WriteLn('  - Simulates unreachable endpoints');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
-    StateStore := TSidekiqInMemoryStateStore.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
+    StateStore := THefestoInMemoryStateStore.New;
 
     // Enqueue 6 webhook deliveries - some to "unstable" endpoints
     Queue.Enqueue('deliver_webhook',
@@ -106,14 +106,14 @@ begin
     WriteLn('--- Processing ---');
     WriteLn('');
 
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
       .StateStore(StateStore)
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(3, 2))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(3, 2))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('deliver_webhook', TWebhookDeliveryHandler.Create)
       .Run;
 

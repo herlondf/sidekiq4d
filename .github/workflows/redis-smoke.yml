@@ -1,13 +1,13 @@
-name: Redis Smoke Test
+﻿name: Redis Smoke Test
 
 on:
   push:
     branches: [main]
     paths:
-      - 'src/Sidekiq4D.Store.Redis4D.pas'
-      - 'src/Sidekiq4D.Locking.Redis4D.pas'
-      - 'src/Sidekiq4D.Scheduled.Redis4D.pas'
-      - 'src/Sidekiq4D.ClientReliability.Redis4D.pas'
+      - 'src/Hefesto.Store.Redis4D.pas'
+      - 'src/Hefesto.Locking.Redis4D.pas'
+      - 'src/Hefesto.Scheduled.Redis4D.pas'
+      - 'src/Hefesto.ClientReliability.Redis4D.pas'
   workflow_dispatch:
 
 env:
@@ -47,5 +47,5 @@ jobs:
         if: env.REDIS_AVAILABLE == 'true'
         shell: bash
         run: |
-          tests/bin/Debug/Sidekiq4D.Redis4D.RealSmoke.exe
+          tests/bin/Debug/Hefesto.Redis4D.RealSmoke.exe
           echo "Redis smoke OK — all 4 steps passed"

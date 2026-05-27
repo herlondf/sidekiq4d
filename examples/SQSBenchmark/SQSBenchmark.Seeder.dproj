@@ -1,4 +1,4 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{B6DAC794-DCA5-414C-B8EC-204B3B76C090}</ProjectGuid>
         <MainSource>SQSBenchmark.Seeder.dpr</MainSource>
@@ -35,7 +35,7 @@
         <DCC_N>false</DCC_N>
         <DCC_S>false</DCC_S>
         <DCC_ImageBase>00400000</DCC_ImageBase>
-        <SanitizedProjectName>Sidekiq4DBasicConsole</SanitizedProjectName>
+        <SanitizedProjectName>HefestoBasicConsole</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1046</VerInfo_Locale>
         <DCC_UnitSearchPath>..\..\src;..\..\src\adapters;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -58,16 +58,16 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\src\Sidekiq4D.Job.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Context.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Handler.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Options.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Queue.Interfaces.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Queue.InMemory.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Dispatcher.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Retry.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Telemetry.pas"/>
-        <DCCReference Include="..\src\Sidekiq4D.Server.pas"/>
+        <DCCReference Include="..\src\Hefesto.Job.pas"/>
+        <DCCReference Include="..\src\Hefesto.Context.pas"/>
+        <DCCReference Include="..\src\Hefesto.Handler.pas"/>
+        <DCCReference Include="..\src\Hefesto.Options.pas"/>
+        <DCCReference Include="..\src\Hefesto.Queue.Interfaces.pas"/>
+        <DCCReference Include="..\src\Hefesto.Queue.InMemory.pas"/>
+        <DCCReference Include="..\src\Hefesto.Dispatcher.pas"/>
+        <DCCReference Include="..\src\Hefesto.Retry.pas"/>
+        <DCCReference Include="..\src\Hefesto.Telemetry.pas"/>
+        <DCCReference Include="..\src\Hefesto.Server.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

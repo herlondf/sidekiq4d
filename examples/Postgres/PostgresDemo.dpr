@@ -1,10 +1,10 @@
-program PostgresDemo;
+﻿program PostgresDemo;
 
 {$APPTYPE CONSOLE}
 
 // Demo: State Store com PostgreSQL via FireDAC
 //
-// Mostra como usar Postgres como backend persistente para o Sidekiq4D.
+// Mostra como usar Postgres como backend persistente para o Hefesto.
 // Ideal para cenarios multi-processo/multi-servidor onde o estado precisa
 // ser compartilhado (locks, idempotency, leader election).
 //
@@ -18,36 +18,36 @@ uses
   FireDAC.Stan.Async,
   FireDAC.DApt,
   FireDAC.Phys.PG,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.Interfaces,
-  Sidekiq4D.Store.Postgres,
-  Sidekiq4D.Store.FireDAC,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Idempotency,
-  Sidekiq4D.Leader,
-  Sidekiq4D.Scheduled,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Server;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.Interfaces,
+  Hefesto.Store.Postgres,
+  Hefesto.Store.FireDAC,
+  Hefesto.Locking,
+  Hefesto.Idempotency,
+  Hefesto.Leader,
+  Hefesto.Scheduled,
+  Hefesto.Dispatcher,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Server;
 
 type
-  TInvoiceHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TInvoiceHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-function TInvoiceHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TInvoiceHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'emit_invoice';
 end;
 
-procedure TInvoiceHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TInvoiceHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn(Format('  [invoice] Emitindo NF: %s', [AContext.Job.Body]));
   Sleep(100); // Simula chamada a SEFAZ
@@ -62,22 +62,22 @@ const
 
 var
   Connection: TFDConnection;
-  StateStore: ISidekiqStateStore;
-  Queue: TSidekiqInMemoryQueueAdapter;
-  Server: ISidekiqServer;
+  StateStore: IHefestoStateStore;
+  Queue: THefestoInMemoryQueueAdapter;
+  Server: IHefestoServer;
 begin
   try
-    WriteLn('Sidekiq4D - Demo PostgreSQL (FireDAC)');
+    WriteLn('Hefesto - Demo PostgreSQL (FireDAC)');
     WriteLn(Format('Conectando em %s:%d/%s...', [PG_HOST, PG_PORT, PG_DB]));
     WriteLn('');
 
     // --- Criar conexao Postgres ---
-    Connection := TSidekiqFireDACBackend.NewPostgresConnection(
+    Connection := THefestoFireDACBackend.NewPostgresConnection(
       PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASS);
     try
       // --- State Store com backend Postgres ---
-      StateStore := TSidekiqPostgresStateStore.New
-        .Backend(TSidekiqFireDACBackend.New(Connection))
+      StateStore := THefestoPostgresStateStore.New
+        .Backend(THefestoFireDACBackend.New(Connection))
         .TableName('sidekiq_state');
 
       WriteLn('--- Configuracao ---');
@@ -86,9 +86,9 @@ begin
       WriteLn('  Estado distribuido: locks, idempotency, leader election');
       WriteLn('');
 
-      Queue := TSidekiqInMemoryQueueAdapter.New;
+      Queue := THefestoInMemoryQueueAdapter.New;
 
-      Server := TSidekiqServer.New
+      Server := THefestoServer.New
         .UseQueue(Queue)
         .BatchSize(10)
         .IdleDelayMs(0)
@@ -96,15 +96,15 @@ begin
 
         // Providers com Postgres
         .StateStore(StateStore)
-        .LockProvider(TSidekiqInMemoryLockProvider.New(StateStore))
-        .Idempotency(TSidekiqStateStoreIdempotency.New(StateStore))
+        .LockProvider(THefestoInMemoryLockProvider.New(StateStore))
+        .Idempotency(THefestoStateStoreIdempotency.New(StateStore))
 
         // Leader election (funciona com multiplos processos apontando pro mesmo Postgres)
         .UseLeaderElection(True)
         .LeaderName('invoice-workers')
         .LeaderLeaseTtlSeconds(30)
 
-        .Telemetry(TSidekiqConsoleTelemetry.New)
+        .Telemetry(THefestoConsoleTelemetry.New)
         .RegisterHandler('emit_invoice', TInvoiceHandler.Create);
 
       WriteLn(Format('  IsLeader: %s', [BoolToStr(Server.IsLeader, True)]));

@@ -1,4 +1,4 @@
-# Limites Atuais
+﻿# Limites Atuais
 
 ## Plataforma
 
@@ -13,7 +13,7 @@
 
 ## Processamento
 
-- **Uma fila por servidor:** cada instância de `TSidekiqServer` processa uma única fila. Para múltiplas filas com prioridades diferentes, são necessárias múltiplas instâncias de servidor
+- **Uma fila por servidor:** cada instância de `THefestoServer` processa uma única fila. Para múltiplas filas com prioridades diferentes, são necessárias múltiplas instâncias de servidor
 - **Sem prioridade de jobs dentro da fila:** os jobs são processados na ordem que o broker os entrega (FIFO para InMemory e Redis Streams, sem garantia para SQS)
 - **Sem circuit breaker de fila:** se o broker cair, o servidor tenta fetch continuamente com `IdleDelayMs` de espera
 
@@ -32,7 +32,7 @@
 
 - **Dashboard sem autenticação:** o web dashboard não tem mecanismo de autenticação nativo. Em produção, use um reverse proxy (Nginx, Caddy) para proteger o acesso
 - **SSE sem reconexão automática no servidor:** se a conexão SSE cair, o cliente precisa reconectar manualmente
-- **Métricas históricas em memória:** `TSidekiqHistoricalMetricsTelemetry` perde dados ao reiniciar; não persiste em disco ou banco
+- **Métricas históricas em memória:** `THefestoHistoricalMetricsTelemetry` perde dados ao reiniciar; não persiste em disco ou banco
 
 ## Testes
 

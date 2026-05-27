@@ -1,36 +1,36 @@
-# Idempotência
+﻿# Idempotência
 
 Previne que o mesmo job seja processado mais de uma vez, mesmo que seja enfileirado múltiplas vezes ou que o broker entregue duplicatas (at-least-once delivery).
 
 ## Implementações disponíveis
 
-### TSidekiqStateStoreIdempotency
+### THefestoStateStoreIdempotency
 
 Marca jobs como processados com chave permanente no state store. Não expira.
 
 ```pascal
-TSidekiqStateStoreIdempotency.New(LStore)
+THefestoStateStoreIdempotency.New(LStore)
 ```
 
 Comportamento: se a chave já existe no store, o job é descartado silenciosamente.
 
-### TSidekiqRenewableIdempotency
+### THefestoRenewableIdempotency
 
 Igual ao anterior, mas com TTL. Após expirar, o mesmo job pode ser processado novamente.
 
 ```pascal
-TSidekiqRenewableIdempotency.New(
-  LStore,      // ISidekiqStateStore
+THefestoRenewableIdempotency.New(
+  LStore,      // IHefestoStateStore
   TTLSeconds   // tempo em segundos até a chave expirar
 )
 ```
 
 Útil quando o mesmo job pode ser reprocessado periodicamente (ex: importação diária com mesmos IDs).
 
-## Interface ISidekiqIdempotency
+## Interface IHefestoIdempotency
 
 ```pascal
-ISidekiqIdempotency = interface
+IHefestoIdempotency = interface
   function TryBegin(const AKey: string): Boolean;
   procedure MarkCompleted(const AKey: string);
   function Exists(const AKey: string): Boolean;
@@ -44,30 +44,30 @@ end;
 ## Configurando no servidor
 
 ```pascal
-var LStore := TSidekiqRedis4DStateStore.New
+var LStore := THefestoRedis4DStateStore.New
   .ConnectionString('redis://localhost:6379');
 
-TSidekiqServer.New
+THefestoServer.New
   .UseQueue(TMyAdapter.New)
   .StateStore(LStore)
-  .Idempotency(TSidekiqStateStoreIdempotency.New(LStore))
+  .Idempotency(THefestoStateStoreIdempotency.New(LStore))
   ...
 ```
 
-O servidor usa automaticamente o `ISidekiqIdempotency` configurado antes de despachar o job para o handler.
+O servidor usa automaticamente o `IHefestoIdempotency` configurado antes de despachar o job para o handler.
 
 ## Chave de idempotência
 
 Por padrão, a chave é derivada do `JobId` do envelope. Para customizar a chave (ex: usar um campo do payload):
 
 ```pascal
-// O handler pode implementar ISidekiqIdempotencyKeyProvider
+// O handler pode implementar IHefestoIdempotencyKeyProvider
 // para retornar uma chave personalizada baseada no payload
 ```
 
 ## Limitação com InMemory
 
-`TSidekiqInMemoryStateStore` perde estado ao reiniciar o processo. Para idempotência persistente entre restarts, use Redis ou PostgreSQL.
+`THefestoInMemoryStateStore` perde estado ao reiniciar o processo. Para idempotência persistente entre restarts, use Redis ou PostgreSQL.
 
 ## Interação com retry
 

@@ -1,4 +1,4 @@
-# Receita: Dashboard Web
+﻿# Receita: Dashboard Web
 
 Servidor com dashboard web, métricas Prometheus e monitoramento em tempo real.
 
@@ -9,25 +9,25 @@ program DashboardWeb;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Store.InMemory,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console,
-  Sidekiq4D.Dashboard;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.InMemory,
+  Hefesto.Store.InMemory,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console,
+  Hefesto.Dashboard;
 
 type
-  TLentoHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TLentoHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TRapidoHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TRapidoHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
 function TLentoHandler.CanHandle(const AAction: string): Boolean;
@@ -35,7 +35,7 @@ begin
   Result := AAction = 'lento';
 end;
 
-procedure TLentoHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TLentoHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Sleep(2000);  // simula job lento
   Writeln('Lento concluído: ', AJob.JobId);
@@ -46,33 +46,33 @@ begin
   Result := AAction = 'rapido';
 end;
 
-procedure TRapidoHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TRapidoHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   Sleep(50);
   Writeln('Rápido concluído: ', AJob.JobId);
 end;
 
 var
-  LQueue: ISidekiqQueueAdapter;
-  LServer: ISidekiqServer;
-  LDashboard: ISidekiqWebDashboard;
+  LQueue: IHefestoQueueAdapter;
+  LServer: IHefestoServer;
+  LDashboard: IHefestoWebDashboard;
   I: Integer;
 begin
   Randomize;
-  LQueue := TSidekiqInMemoryQueueAdapter.New;
+  LQueue := THefestoInMemoryQueueAdapter.New;
 
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(LQueue)
     .Concurrency(4)
-    .StateStore(TSidekiqInMemoryStateStore.New)
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(3, 5, 60))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .StateStore(THefestoInMemoryStateStore.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(3, 5, 60))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('lento',  TLentoHandler.Create)
     .RegisterHandler('rapido', TRapidoHandler.Create)
     .Run;
 
   // Iniciar dashboard na porta 8080
-  LDashboard := TSidekiqWebDashboard.New
+  LDashboard := THefestoWebDashboard.New
     .Port(8080)
     .Start;
 

@@ -1,4 +1,4 @@
-program CircuitBreakerDemo;
+﻿program CircuitBreakerDemo;
 
 {$APPTYPE CONSOLE}
 
@@ -17,33 +17,33 @@ program CircuitBreakerDemo;
 
 uses
   System.SysUtils,
-  Sidekiq4D.Job,
-  Sidekiq4D.Context,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Options,
-  Sidekiq4D.Queue.Interfaces,
-  Sidekiq4D.Queue.InMemory,
-  Sidekiq4D.Middleware,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry,
-  Sidekiq4D.Dispatcher,
-  Sidekiq4D.Server,
-  Sidekiq4D.Middleware.CircuitBreaker;
+  Hefesto.Job,
+  Hefesto.Context,
+  Hefesto.Handler,
+  Hefesto.Options,
+  Hefesto.Queue.Interfaces,
+  Hefesto.Queue.InMemory,
+  Hefesto.Middleware,
+  Hefesto.Retry,
+  Hefesto.Telemetry,
+  Hefesto.Dispatcher,
+  Hefesto.Server,
+  Hefesto.Middleware.CircuitBreaker;
 
 type
-  TUnstableHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TUnstableHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
     FCallCount: Integer;
     FFailUntil: Integer;
   public
     constructor Create(AFailUntil: Integer);
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
-  TStableHandler = class(TInterfacedObject, ISidekiqJobHandler)
-    function CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
-    procedure Perform(const AContext: ISidekiqJobContext);
+  TStableHandler = class(TInterfacedObject, IHefestoJobHandler)
+    function CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
+    procedure Perform(const AContext: IHefestoJobContext);
   end;
 
 constructor TUnstableHandler.Create(AFailUntil: Integer);
@@ -53,12 +53,12 @@ begin
   FFailUntil := AFailUntil;
 end;
 
-function TUnstableHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TUnstableHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'unstable';
 end;
 
-procedure TUnstableHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TUnstableHandler.Perform(const AContext: IHefestoJobContext);
 begin
   Inc(FCallCount);
   if FCallCount <= FFailUntil then
@@ -71,30 +71,30 @@ begin
     [FCallCount]));
 end;
 
-function TStableHandler.CanHandle(const AJob: ISidekiqJobEnvelope): Boolean;
+function TStableHandler.CanHandle(const AJob: IHefestoJobEnvelope): Boolean;
 begin
   Result := AJob.Action = 'stable';
 end;
 
-procedure TStableHandler.Perform(const AContext: ISidekiqJobContext);
+procedure TStableHandler.Perform(const AContext: IHefestoJobContext);
 begin
   WriteLn('  [stable] Processado com sucesso');
 end;
 
 var
-  Queue: TSidekiqInMemoryQueueAdapter;
-  CB: TSidekiqCircuitBreakerMiddleware;
+  Queue: THefestoInMemoryQueueAdapter;
+  CB: THefestoCircuitBreakerMiddleware;
   I: Integer;
 begin
   try
-    WriteLn('Sidekiq4D - Demo Circuit Breaker');
+    WriteLn('Hefesto - Demo Circuit Breaker');
     WriteLn('');
     WriteLn('Configuracao:');
     WriteLn('  Failure threshold: 3 (abre apos 3 falhas consecutivas)');
     WriteLn('  Cooldown: 2s (tempo que fica aberto)');
     WriteLn('');
 
-    Queue := TSidekiqInMemoryQueueAdapter.New;
+    Queue := THefestoInMemoryQueueAdapter.New;
 
     // Enfileira 8 jobs para provider instavel + 2 para estavel
     for I := 1 to 8 do
@@ -102,21 +102,21 @@ begin
     Queue.Enqueue('stable', '{"ok":true}');
     Queue.Enqueue('stable', '{"ok":true}');
 
-    CB := TSidekiqCircuitBreakerMiddleware.New
+    CB := THefestoCircuitBreakerMiddleware.New
       .FailureThreshold(3)
       .CooldownSeconds(2);
 
     WriteLn('--- Processando ---');
     WriteLn('');
 
-    TSidekiqServer.New
+    THefestoServer.New
       .UseQueue(Queue)
       .BatchSize(10)
       .IdleDelayMs(0)
       .StopWhenIdle
       .UseServerMiddleware(CB)
-      .RetryPolicy(TSidekiqSimpleRetryPolicy.New(2, 0))
-      .Telemetry(TSidekiqConsoleTelemetry.New)
+      .RetryPolicy(THefestoSimpleRetryPolicy.New(2, 0))
+      .Telemetry(THefestoConsoleTelemetry.New)
       .RegisterHandler('unstable', TUnstableHandler.Create(5))
       .RegisterHandler('stable', TStableHandler.Create)
       .Run;

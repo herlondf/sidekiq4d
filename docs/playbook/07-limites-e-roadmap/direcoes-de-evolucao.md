@@ -1,11 +1,11 @@
-# Direções de Evolução
+﻿# Direções de Evolução
 
 Direções possíveis baseadas nos limites atuais e casos de uso observados. Não são compromissos de roadmap.
 
 ## Broker e protocolo
 
 **Suporte a múltiplas filas por servidor**
-Permitir que um `ISidekiqServer` consuma de múltiplas filas com pesos ou prioridades. O dispatcher selecionaria a fila com base em configuração.
+Permitir que um `IHefestoServer` consuma de múltiplas filas com pesos ou prioridades. O dispatcher selecionaria a fila com base em configuração.
 
 **Adapter AMQP nativo para RabbitMQ**
 Eliminar dependência do Management HTTP API usando um cliente AMQP puro Delphi ou wrapper de biblioteca C.
@@ -41,7 +41,7 @@ Basic Auth ou token configurável para proteger os endpoints web sem necessidade
 Gravar métricas no state store (Redis) para acesso após restart e correlação temporal.
 
 **Logs estruturados com níveis**
-Nível de log configurável (DEBUG, INFO, WARN, ERROR) integrado ao `ISidekiqTelemetry`.
+Nível de log configurável (DEBUG, INFO, WARN, ERROR) integrado ao `IHefestoTelemetry`.
 
 ## Developer Experience
 

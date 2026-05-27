@@ -1,4 +1,4 @@
-# Receita: Leader Election
+﻿# Receita: Leader Election
 
 Garantir que apenas uma instância em um cluster execute tarefas exclusivas.
 
@@ -10,34 +10,34 @@ program LeaderElection;
 uses
   System.SysUtils,
   System.Threading,
-  Sidekiq4D.Server,
-  Sidekiq4D.Handler,
-  Sidekiq4D.Queue.RedisStreams,
-  Sidekiq4D.Store.Redis4D,
-  Sidekiq4D.Locking,
-  Sidekiq4D.Retry,
-  Sidekiq4D.Telemetry.Console;
+  Hefesto.Server,
+  Hefesto.Handler,
+  Hefesto.Queue.RedisStreams,
+  Hefesto.Store.Redis4D,
+  Hefesto.Locking,
+  Hefesto.Retry,
+  Hefesto.Telemetry.Console;
 
 const
   REDIS_URL = 'redis://localhost:6379';
 
 type
-  TManutencaoHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TManutencaoHandler = class(TInterfacedObject, IHefestoJobHandler)
   private
-    FServer: ISidekiqServer;
+    FServer: IHefestoServer;
   public
-    constructor Create(const AServer: ISidekiqServer);
+    constructor Create(const AServer: IHefestoServer);
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-  TJobNormalHandler = class(TInterfacedObject, ISidekiqJobHandler)
+  TJobNormalHandler = class(TInterfacedObject, IHefestoJobHandler)
   public
     function CanHandle(const AAction: string): Boolean;
-    procedure Execute(const AJob: ISidekiqJobEnvelope);
+    procedure Execute(const AJob: IHefestoJobEnvelope);
   end;
 
-constructor TManutencaoHandler.Create(const AServer: ISidekiqServer);
+constructor TManutencaoHandler.Create(const AServer: IHefestoServer);
 begin
   inherited Create;
   FServer := AServer;
@@ -48,7 +48,7 @@ begin
   Result := AAction = 'manutencao';
 end;
 
-procedure TManutencaoHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TManutencaoHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // Apenas o líder executa manutenção
   if not FServer.IsLeader then
@@ -66,19 +66,19 @@ begin
   Result := AAction = 'processar';
 end;
 
-procedure TJobNormalHandler.Execute(const AJob: ISidekiqJobEnvelope);
+procedure TJobNormalHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   // Todos os workers processam jobs normais
   Writeln('Processando: ', AJob.Body);
 end;
 
 var
-  LServer: ISidekiqServer;
+  LServer: IHefestoServer;
 begin
   // LServer é declarado antes de ser passado ao handler
-  LServer := TSidekiqServer.New
+  LServer := THefestoServer.New
     .UseQueue(
-      TSidekiqRedisStreamsAdapter.New
+      THefestoRedisStreamsAdapter.New
         .ConnectionString(REDIS_URL)
         .StreamName('sidekiq4d:jobs')
         .ConsumerGroup('cluster-workers')
@@ -86,18 +86,18 @@ begin
     )
     .Concurrency(4)
     .StateStore(
-      TSidekiqRedis4DStateStore.New
+      THefestoRedis4DStateStore.New
         .ConnectionString(REDIS_URL)
     )
     .LockProvider(
-      TSidekiqRedis4DLockProvider.New
+      THefestoRedis4DLockProvider.New
         .ConnectionString(REDIS_URL)
     )
     .LeaderName('meu-cluster')
     .LeaderLeaseTtlSeconds(30)
     .UseLeaderElection
-    .RetryPolicy(TSidekiqExponentialRetryPolicy.New(3, 10, 60))
-    .Telemetry(TSidekiqConsoleTelemetry.New)
+    .RetryPolicy(THefestoExponentialRetryPolicy.New(3, 10, 60))
+    .Telemetry(THefestoConsoleTelemetry.New)
     .RegisterHandler('manutencao', TManutencaoHandler.Create(LServer))
     .RegisterHandler('processar',  TJobNormalHandler.Create)
     .Run;

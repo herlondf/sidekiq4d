@@ -1,4 +1,4 @@
-# Guia de Apresentacao — Sidekiq4D
+﻿# Guia de Apresentacao — Hefesto
 
 ## Publico-alvo
 Comunidade Delphi (open source) — desenvolvedores que precisam de processamento
@@ -13,7 +13,7 @@ assincrono robusto em aplicacoes Delphi.
 ## Estrutura de Topicos
 
 ### Slide 1 — Capa
-- Logo Sidekiq4D
+- Logo Hefesto
 - Tagline: "Async Job Framework for Delphi"
 - GitHub URL
 
@@ -31,7 +31,7 @@ assincrono robusto em aplicacoes Delphi.
 
 ### Slide 4 — Antes vs Depois (codigo)
 - **Antes**: loop manual com 30+ linhas, Sleep, try/except
-- **Depois**: TSidekiqServer.New.UseQueue(...).RegisterHandler(...).Run
+- **Depois**: THefestoServer.New.UseQueue(...).RegisterHandler(...).Run
 - Side-by-side visual
 
 ### Slide 5 — Benchmark Real (SQS)
@@ -48,7 +48,7 @@ assincrono robusto em aplicacoes Delphi.
 - Tabela com todos os adapters disponiveis:
   - InMemory, SQS, RabbitMQ, Kafka, Azure Service Bus, Google Pub/Sub
   - Redis Streams, HTTP Ingress, TCP (Indy/Synapse)
-- "Plugavel: implemente ISidekiqQueueAdapter"
+- "Plugavel: implemente IHefestoQueueAdapter"
 
 ### Slide 8 — Features Core
 - Batch + BatchSize configuravel
@@ -77,7 +77,7 @@ assincrono robusto em aplicacoes Delphi.
 ### Slide 11 — Middlewares
 - Pipeline encadeavel (client + server)
 - Exemplos: Logging, Timeout, Deduplication, Compression, Prometheus
-- "Crie o seu: implemente ISidekiqServerMiddleware"
+- "Crie o seu: implemente IHefestoServerMiddleware"
 
 ### Slide 12 — State Stores
 - InMemory (zero dependencia)
@@ -92,8 +92,8 @@ assincrono robusto em aplicacoes Delphi.
 - Eventos: started, succeeded, failed, retried, dead-lettered
 - Middleware Prometheus com /metrics
 
-### Slide 14 — Comparativo com Sidekiq Ruby
-- Tabela: OSS vs Pro vs Enterprise vs **Sidekiq4D**
+### Slide 14 — Comparativo com Hefesto Ruby
+- Tabela: OSS vs Pro vs Enterprise vs **Hefesto**
 - Tudo incluido, sem licenca por tier
 - Zero dependencia obrigatoria
 
@@ -109,8 +109,8 @@ assincrono robusto em aplicacoes Delphi.
 ### Slide 16 — Getting Started
 - 3 passos:
   1. Clone + adicione `src/` ao search path
-  2. Crie handler (ISidekiqJobHandler)
-  3. Configure server (TSidekiqServer.New...)
+  2. Crie handler (IHefestoJobHandler)
+  3. Configure server (THefestoServer.New...)
 - Codigo minimo funcional (5 linhas)
 
 ### Slide 17 — Exemplos & Demos

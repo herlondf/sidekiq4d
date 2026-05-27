@@ -1,4 +1,4 @@
-# Concorrência e Comportamento do Worker Pool
+﻿# Concorrência e Comportamento do Worker Pool
 
 ## Parâmetros principais
 
@@ -48,7 +48,7 @@ Tempo de espera em milissegundos quando a fila está vazia antes de tentar busca
 Para o servidor automaticamente quando a fila esvazia. Útil para processamento em batch programado:
 
 ```pascal
-LServer := TSidekiqServer.New
+LServer := THefestoServer.New
   .UseQueue(TMyAdapter.New)
   .Concurrency(4)
   .StopWhenIdle
@@ -78,7 +78,7 @@ O framework garante que cada job é processado por exatamente uma thread ao mesm
 Se seu handler mantém estado entre execuções (ex: cache, conexão de banco), proteja:
 
 ```pascal
-TMyHandler = class(TInterfacedObject, ISidekiqJobHandler)
+TMyHandler = class(TInterfacedObject, IHefestoJobHandler)
 private
   FLock: TCriticalSection;
   FCache: TDictionary<string, string>;

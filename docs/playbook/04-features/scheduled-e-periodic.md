@@ -1,16 +1,16 @@
-# Scheduled e Periodic Jobs
+﻿# Scheduled e Periodic Jobs
 
 ## Scheduled Jobs (execução futura única)
 
-Jobs agendados para uma data/hora específica. Requerem um `ISidekiqScheduledStore` configurado no servidor.
+Jobs agendados para uma data/hora específica. Requerem um `IHefestoScheduledStore` configurado no servidor.
 
-### Interface ISidekiqScheduledStore
+### Interface IHefestoScheduledStore
 
 ```pascal
-ISidekiqScheduledStore = interface
-  procedure Schedule(const AEntry: TSidekiqScheduledEntry);
-  function PopDue(const ANow: TDateTime; ALimit: Integer): TArray<TSidekiqScheduledEntry>;
-  function List: TArray<TSidekiqScheduledEntry>;
+IHefestoScheduledStore = interface
+  procedure Schedule(const AEntry: THefestoScheduledEntry);
+  function PopDue(const ANow: TDateTime; ALimit: Integer): TArray<THefestoScheduledEntry>;
+  function List: TArray<THefestoScheduledEntry>;
   procedure Delete(const AQueue, AAction: string; const ADueAt: TDateTime);
 end;
 ```
@@ -19,7 +19,7 @@ end;
 
 ```pascal
 var
-  LEntry: TSidekiqScheduledEntry;
+  LEntry: THefestoScheduledEntry;
 begin
   LEntry := MakeScheduledEntry(
     'default',              // queue
@@ -35,7 +35,7 @@ end;
 ### Configurando o servidor para processar scheduled jobs
 
 ```pascal
-TSidekiqServer.New
+THefestoServer.New
   .UseQueue(TMyAdapter.New)
   .StateStore(LStore)
   // O ScheduledStore é configurado separadamente
@@ -81,7 +81,7 @@ Campos suportados: `*`, `*/N`, `A-B`, `A,B,C`.
 ### Registrando um job periódico
 
 ```pascal
-TSidekiqPeriodicJob.Register(
+THefestoPeriodicJob.Register(
   'cleanup_temp_files',  // action/nome
   '*/30 * * * *',        // cron: a cada 30 minutos
   'default',             // queue
@@ -95,6 +95,6 @@ O scheduler calcula o próximo `DueAt` com base na expressão cron e agenda auto
 ## Troubleshooting
 
 **Jobs agendados não disparam:**
-- Verificar se `ISidekiqScheduledStore` está configurado e o scheduler está rodando
+- Verificar se `IHefestoScheduledStore` está configurado e o scheduler está rodando
 - Verificar timezone: o scheduler usa horário local da máquina
 - Ver [troubleshooting.md](../05-operacao-e-runtime/troubleshooting.md)
