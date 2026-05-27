@@ -1,33 +1,33 @@
-﻿# State Stores
+# State Stores
 
-Implementam `IHefestoStateStore` (`src/Hefesto.Store.Interfaces.pas`). Usados por features como idempotência, rate limiting, leader election e scheduled jobs.
+Implement `IHefestoStateStore` (`src/Hefesto.Store.Interfaces.pas`). Used by features such as idempotency, rate limiting, leader election, and scheduled jobs.
 
-## Tabela
+## Table
 
-| Store | Unit | Dependência externa | Persistência |
+| Store | Unit | External dependency | Persistence |
 |-------|------|--------------------|----|
-| `THefestoInMemoryStateStore` | `Hefesto.Store.InMemory` | Nenhuma | Não |
-| `THefestoRedis4DStateStore` | `Hefesto.Store.Redis4D` | Redis4D | Sim |
-| `THefestoRedisSentinelStateStore` | `Hefesto.Store.RedisSentinel` | Redis Sentinel | Sim |
-| `THefestoPostgreSQLStateStore` | `Hefesto.Store.PostgreSQL` | FireDAC + PostgreSQL | Sim |
-| `THefestoMongoDBStateStore` | `Hefesto.Store.MongoDB` | MongoDB Atlas HTTP API | Sim |
-| `THefestoFireDACStateStore` | `Hefesto.Store.FireDAC` | FireDAC (qualquer banco) | Sim |
+| `THefestoInMemoryStateStore` | `Hefesto.Store.InMemory` | None | No |
+| `THefestoRedis4DStateStore` | `Hefesto.Store.Redis4D` | Redis4D | Yes |
+| `THefestoRedisSentinelStateStore` | `Hefesto.Store.RedisSentinel` | Redis Sentinel | Yes |
+| `THefestoPostgreSQLStateStore` | `Hefesto.Store.PostgreSQL` | FireDAC + PostgreSQL | Yes |
+| `THefestoMongoDBStateStore` | `Hefesto.Store.MongoDB` | MongoDB Atlas HTTP API | Yes |
+| `THefestoFireDACStateStore` | `Hefesto.Store.FireDAC` | FireDAC (any database) | Yes |
 
-## Quando usar cada um
+## When to use each
 
-**InMemory** — testes, desenvolvimento, single-process. Sem persistência. Ideal para isolar fixtures DUnitX.
+**InMemory** — tests, development, single-process. No persistence. Ideal for isolating DUnitX fixtures.
 
-**Redis4D** — produção padrão. Alta performance, TTL nativo, atomic operations. Necessário para leader election distribuída.
+**Redis4D** — standard production. High performance, native TTL, atomic operations. Required for distributed leader election.
 
-**Redis Sentinel** — Redis em alta disponibilidade com failover automático. Mesmas capacidades do Redis4D com resiliência.
+**Redis Sentinel** — Redis in high availability with automatic failover. Same capabilities as Redis4D with added resilience.
 
-**PostgreSQL** — quando Redis não está na infraestrutura mas PostgreSQL sim. Menor performance que Redis para operações de alta frequência.
+**PostgreSQL** — when Redis is not in the infrastructure but PostgreSQL is. Lower performance than Redis for high-frequency operations.
 
-**MongoDB** — infraestrutura com MongoDB Atlas. Usa HTTP API (sem driver nativo).
+**MongoDB** — infrastructure with MongoDB Atlas. Uses HTTP API (no native driver).
 
-**FireDAC** — genérico para qualquer banco suportado pelo FireDAC (SQLite, Oracle, MySQL, Interbase). SQLite é opção leve para single-process com persistência.
+**FireDAC** — generic for any database supported by FireDAC (SQLite, Oracle, MySQL, Interbase). SQLite is a lightweight option for single-process with persistence.
 
-## Interface IHefestoStateStore
+## IHefestoStateStore interface
 
 ```pascal
 IHefestoStateStore = interface
@@ -39,13 +39,13 @@ IHefestoStateStore = interface
 end;
 ```
 
-- `TryPutIfAbsent` é a operação atômica usada por idempotência e leader election — deve ser atômica no backend (Redis: SET NX, PostgreSQL: INSERT ON CONFLICT)
-- `Keys(prefix)` retorna todas as chaves com o prefixo dado — usado para listagem de scheduled jobs e métricas
+- `TryPutIfAbsent` is the atomic operation used by idempotency and leader election — must be atomic in the backend (Redis: SET NX, PostgreSQL: INSERT ON CONFLICT)
+- `Keys(prefix)` returns all keys with the given prefix — used for listing scheduled jobs and metrics
 
-## Nota sobre leader election
+## Note on leader election
 
-Leader election distribuída requer `TryPutIfAbsent` atômica em múltiplos processos. `THefestoInMemoryStateStore` só funciona para leader election dentro do mesmo processo. Para múltiplos hosts, use Redis4D ou PostgreSQL.
+Distributed leader election requires atomic `TryPutIfAbsent` across multiple processes. `THefestoInMemoryStateStore` only works for leader election within the same process. For multiple hosts, use Redis4D or PostgreSQL.
 
-## Como implementar um store próprio
+## How to implement a custom store
 
-Ver [CLAUDE.md](../../CLAUDE.md) — seção "Adicionando um State Store".
+See [CLAUDE.md](../../CLAUDE.md) — section "Adding a State Store".

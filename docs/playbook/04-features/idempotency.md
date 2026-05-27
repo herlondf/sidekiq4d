@@ -1,33 +1,33 @@
-﻿# Idempotência
+# Idempotency
 
-Previne que o mesmo job seja processado mais de uma vez, mesmo que seja enfileirado múltiplas vezes ou que o broker entregue duplicatas (at-least-once delivery).
+Prevents the same job from being processed more than once, even if it is enqueued multiple times or the broker delivers duplicates (at-least-once delivery).
 
-## Implementações disponíveis
+## Available implementations
 
 ### THefestoStateStoreIdempotency
 
-Marca jobs como processados com chave permanente no state store. Não expira.
+Marks jobs as processed with a permanent key in the state store. Does not expire.
 
 ```pascal
 THefestoStateStoreIdempotency.New(LStore)
 ```
 
-Comportamento: se a chave já existe no store, o job é descartado silenciosamente.
+Behavior: if the key already exists in the store, the job is silently discarded.
 
 ### THefestoRenewableIdempotency
 
-Igual ao anterior, mas com TTL. Após expirar, o mesmo job pode ser processado novamente.
+Same as above, but with a TTL. After expiration, the same job can be processed again.
 
 ```pascal
 THefestoRenewableIdempotency.New(
   LStore,      // IHefestoStateStore
-  TTLSeconds   // tempo em segundos até a chave expirar
+  TTLSeconds   // time in seconds until the key expires
 )
 ```
 
-Útil quando o mesmo job pode ser reprocessado periodicamente (ex: importação diária com mesmos IDs).
+Useful when the same job can be reprocessed periodically (e.g. daily import with the same IDs).
 
-## Interface IHefestoIdempotency
+## IHefestoIdempotency interface
 
 ```pascal
 IHefestoIdempotency = interface
@@ -37,11 +37,11 @@ IHefestoIdempotency = interface
 end;
 ```
 
-- `TryBegin(key)` → `True` se o job pode prosseguir (chave não existia), `False` se é duplicata
-- `MarkCompleted(key)` → grava a chave após execução bem-sucedida
-- `Exists(key)` → verifica sem marcar (útil para diagnóstico)
+- `TryBegin(key)` → `True` if the job can proceed (key did not exist), `False` if it is a duplicate
+- `MarkCompleted(key)` → records the key after successful execution
+- `Exists(key)` → checks without marking (useful for diagnostics)
 
-## Configurando no servidor
+## Configuring on the server
 
 ```pascal
 var LStore := THefestoRedis4DStateStore.New
@@ -54,23 +54,23 @@ THefestoServer.New
   ...
 ```
 
-O servidor usa automaticamente o `IHefestoIdempotency` configurado antes de despachar o job para o handler.
+The server automatically uses the configured `IHefestoIdempotency` before dispatching the job to the handler.
 
-## Chave de idempotência
+## Idempotency key
 
-Por padrão, a chave é derivada do `JobId` do envelope. Para customizar a chave (ex: usar um campo do payload):
+By default, the key is derived from the `JobId` of the envelope. To customize the key (e.g. use a field from the payload):
 
 ```pascal
-// O handler pode implementar IHefestoIdempotencyKeyProvider
-// para retornar uma chave personalizada baseada no payload
+// The handler can implement IHefestoIdempotencyKeyProvider
+// to return a custom key based on the payload
 ```
 
-## Limitação com InMemory
+## Limitation with InMemory
 
-`THefestoInMemoryStateStore` perde estado ao reiniciar o processo. Para idempotência persistente entre restarts, use Redis ou PostgreSQL.
+`THefestoInMemoryStateStore` loses state on process restart. For persistent idempotency across restarts, use Redis or PostgreSQL.
 
-## Interação com retry
+## Interaction with retry
 
-Quando um job falha e é retentado, o `TryBegin` é chamado novamente. Como a chave ainda não foi marcada com `MarkCompleted` (falhou antes), o retry é permitido — comportamento correto.
+When a job fails and is retried, `TryBegin` is called again. Since the key was not yet marked with `MarkCompleted` (it failed before), the retry is allowed — correct behavior.
 
-Ver receita em [06-receitas/idempotencia.md](../06-receitas/idempotencia.md).
+See recipe in [06-recipes/idempotencia.md](../06-recipes/idempotencia.md).

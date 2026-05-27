@@ -1,14 +1,14 @@
 # 04 — Features
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| [scheduled-e-periodic.md](scheduled-e-periodic.md) | Jobs agendados por data/hora e cron periódico |
-| [batch-jobs.md](batch-jobs.md) | Processamento em batch com callbacks de conclusão |
-| [job-graph.md](job-graph.md) | DAG de jobs com dependências e execução paralela |
-| [idempotency.md](idempotency.md) | Prevenção de reprocessamento duplicado |
-| [rate-limiting.md](rate-limiting.md) | Token bucket para controle de taxa |
-| [leader-election.md](leader-election.md) | Eleição de líder distribuída entre processos |
-| [outbox.md](outbox.md) | Padrão Outbox para publicação confiável |
-| [dashboard-web.md](dashboard-web.md) | Dashboard web com endpoints REST e SSE |
+| File | Content |
+|------|---------|
+| [scheduled-e-periodic.md](scheduled-e-periodic.md) | Jobs scheduled by date/time and periodic cron |
+| [batch-jobs.md](batch-jobs.md) | Batch processing with completion callbacks |
+| [job-graph.md](job-graph.md) | DAG of jobs with dependencies and parallel execution |
+| [idempotency.md](idempotency.md) | Prevention of duplicate reprocessing |
+| [rate-limiting.md](rate-limiting.md) | Token bucket for rate control |
+| [leader-election.md](leader-election.md) | Distributed leader election between processes |
+| [outbox.md](outbox.md) | Outbox pattern for reliable publishing |
+| [dashboard-web.md](dashboard-web.md) | Web dashboard with REST endpoints and SSE |
 
-← [Voltar ao índice](../README.md)
+← [Back to index](../README.md)

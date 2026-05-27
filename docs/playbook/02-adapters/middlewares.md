@@ -1,38 +1,38 @@
-﻿# Middlewares
+# Middlewares
 
-Implementam `IHefestoServerMiddleware` (`src/Hefesto.Middleware.pas`). Executados em cadeia para cada job antes do handler.
+Implement `IHefestoServerMiddleware` (`src/Hefesto.Middleware.pas`). Executed in a chain for each job before the handler.
 
-## Tabela
+## Table
 
-| Middleware | Unit | O que faz |
-|-----------|------|-----------|
-| `THefestoCircuitBreakerMiddleware` | `Hefesto.Middleware.CircuitBreaker` | Abre o circuito após N falhas consecutivas, bloqueia jobs temporariamente |
-| `THefestoCompressionMiddleware` | `Hefesto.Middleware.Compression` | Descomprime payload ZLib antes do handler |
-| `THefestoDeduplicationMiddleware` | `Hefesto.Middleware.Deduplication` | Descarta jobs duplicados com base em chave hash do payload |
-| `THefestoLoggingMiddleware` | `Hefesto.Middleware.Logging` | Loga início e fim de cada job em JSON estruturado |
-| `THefestoPrometheusMiddleware` | `Hefesto.Middleware.Prometheus` | Incrementa contadores Prometheus por queue e status |
-| `THefestoTimeoutMiddleware` | `Hefesto.Middleware.Timeout` | Aborta jobs que excedem o tempo máximo configurado |
-| `THefestoHorseMiddleware` | `Hefesto.Middleware.Horse` | Integração com o framework Horse para contexto HTTP |
+| Middleware | Unit | What it does |
+|-----------|------|-------------|
+| `THefestoCircuitBreakerMiddleware` | `Hefesto.Middleware.CircuitBreaker` | Opens the circuit after N consecutive failures, temporarily blocks jobs |
+| `THefestoCompressionMiddleware` | `Hefesto.Middleware.Compression` | Decompresses ZLib payload before the handler |
+| `THefestoDeduplicationMiddleware` | `Hefesto.Middleware.Deduplication` | Discards duplicate jobs based on a hash key of the payload |
+| `THefestoLoggingMiddleware` | `Hefesto.Middleware.Logging` | Logs the start and end of each job in structured JSON |
+| `THefestoPrometheusMiddleware` | `Hefesto.Middleware.Prometheus` | Increments Prometheus counters by queue and status |
+| `THefestoTimeoutMiddleware` | `Hefesto.Middleware.Timeout` | Aborts jobs that exceed the configured maximum time |
+| `THefestoHorseMiddleware` | `Hefesto.Middleware.Horse` | Integration with the Horse framework for HTTP context |
 
-## Como encadear
+## How to chain
 
-Middlewares são registrados via `.Use(...)` na configuração do servidor. A ordem de registro define a ordem de execução (FIFO):
+Middlewares are registered via `.Use(...)` in the server configuration. The registration order defines the execution order (FIFO):
 
 ```pascal
 THefestoServer.New
   .Use(THefestoLoggingMiddleware.New)
-  .Use(THefestoTimeoutMiddleware.New(30000))       // 30 segundos
-  .Use(THefestoCircuitBreakerMiddleware.New(5, 60)) // 5 falhas, 60s aberto
+  .Use(THefestoTimeoutMiddleware.New(30000))       // 30 seconds
+  .Use(THefestoCircuitBreakerMiddleware.New(5, 60)) // 5 failures, 60s open
   .Use(THefestoDeduplicationMiddleware.New(LStore))
   ...
 ```
 
-Neste exemplo a ordem de execução para cada job é:
+In this example the execution order for each job is:
 ```
 Logging → Timeout → CircuitBreaker → Deduplication → Handler
 ```
 
-## Interface IHefestoServerMiddleware
+## IHefestoServerMiddleware interface
 
 ```pascal
 IHefestoServerMiddleware = interface
@@ -43,9 +43,9 @@ IHefestoServerMiddleware = interface
 end;
 ```
 
-O middleware deve chamar `ANext` para continuar a cadeia. Se não chamar, o job é descartado silenciosamente (útil para deduplicação).
+The middleware must call `ANext` to continue the chain. If it does not call it, the job is silently discarded (useful for deduplication).
 
-## Exemplo de middleware próprio
+## Custom middleware example
 
 ```pascal
 TMyAuditMiddleware = class(TInterfacedObject, IHefestoServerMiddleware)
@@ -62,10 +62,10 @@ procedure TMyAuditMiddleware.Call(
   const ANext: TProc);
 begin
   LogAudit(AQueue, AJob.Action);
-  ANext();  // sem isso o job não executa
+  ANext();  // without this the job does not execute
 end;
 ```
 
-## Como implementar um middleware próprio
+## How to implement a custom middleware
 
-Ver [CLAUDE.md](../../CLAUDE.md) — seção "Adicionando um Middleware".
+See [CLAUDE.md](../../CLAUDE.md) — section "Adding a Middleware".

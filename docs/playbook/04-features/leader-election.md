@@ -1,8 +1,8 @@
-﻿# Leader Election
+# Leader Election
 
-Garante que apenas um processo (entre múltiplos rodando em paralelo) execute determinadas tarefas exclusivas — como scheduled jobs, manutenção periódica ou tarefas singleton.
+Ensures that only one process (among multiple running in parallel) executes certain exclusive tasks — such as scheduled jobs, periodic maintenance, or singleton tasks.
 
-## Configuração
+## Configuration
 
 ```pascal
 uses
@@ -19,43 +19,43 @@ begin
       THefestoRedis4DLockProvider.New
         .ConnectionString('redis://localhost:6379')
     )
-    .LeaderName('meu-cluster')          // nome do grupo de election
-    .LeaderLeaseTtlSeconds(30)          // TTL do lease
-    .UseLeaderElection                  // ativa o mecanismo
+    .LeaderName('my-cluster')            // election group name
+    .LeaderLeaseTtlSeconds(30)           // lease TTL
+    .UseLeaderElection                   // activates the mechanism
     .RegisterHandler('cron_job', TCronHandler.Create)
     .Run;
 end;
 ```
 
-## Verificando se é líder
+## Checking if leader
 
 ```pascal
 if LServer.IsLeader then
-  ExecutarTarefaExclusiva;
+  ExecuteExclusiveTask;
 ```
 
-O servidor tenta renovar o lease periodicamente. Se o líder atual falhar, outro processo assume após o TTL expirar.
+The server tries to renew the lease periodically. If the current leader fails, another process takes over after the TTL expires.
 
-## Mecanismo interno
+## Internal mechanism
 
-1. Ao iniciar, o servidor tenta gravar uma chave de lock no state store via `TryPutIfAbsent`
-2. Se bem-sucedido, torna-se líder e renova o lease antes do TTL expirar
-3. Se falhar (outro processo já é líder), fica em modo follower e tenta periodicamente
-4. Quando o líder para ou o lease expira sem renovação, outro processo vence a próxima tentativa
+1. On startup, the server tries to write a lock key in the state store via `TryPutIfAbsent`
+2. If successful, it becomes the leader and renews the lease before the TTL expires
+3. If it fails (another process is already the leader), it stays in follower mode and retries periodically
+4. When the leader stops or the lease expires without renewal, another process wins the next attempt
 
-## Requisitos
+## Requirements
 
-**O `LockProvider` deve ser Redis-based para funcionar em múltiplos processos.**
+**The `LockProvider` must be Redis-based to work across multiple processes.**
 
-`THefestoInMemoryStateStore` garante exclusão apenas dentro do mesmo processo — não funciona em ambientes com múltiplos hosts.
+`THefestoInMemoryStateStore` guarantees exclusion only within the same process — it does not work in environments with multiple hosts.
 
-Providers suportados:
-- `THefestoRedis4DLockProvider` — recomendado para produção
-- InMemory — apenas para testes com processo único
+Supported providers:
+- `THefestoRedis4DLockProvider` — recommended for production
+- InMemory — only for tests with a single process
 
-## Tarefas exclusivas do líder
+## Exclusive leader tasks
 
-Exemplo: apenas o líder executa scheduled jobs
+Example: only the leader executes scheduled jobs
 
 ```pascal
 TSchedulerHandler = class(TInterfacedObject, IHefestoJobHandler)
@@ -68,20 +68,20 @@ end;
 procedure TSchedulerHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   if not FServer.IsLeader then
-    Exit;  // followers ignoram tarefas exclusivas
+    Exit;  // followers ignore exclusive tasks
   
-  ProcessarTarefaExclusiva;
+  ProcessExclusiveTask;
 end;
 ```
 
-## TTL recomendado
+## Recommended TTL
 
-| Cenário | TTL sugerido |
-|---------|-------------|
-| Renovação rápida (baixa latência) | 15–30s |
-| Tolerância a falhas de rede | 60s |
-| Jobs longos que não devem interromper | 120s+ |
+| Scenario | Suggested TTL |
+|----------|--------------|
+| Fast renewal (low latency) | 15–30s |
+| Tolerance to network failures | 60s |
+| Long jobs that should not be interrupted | 120s+ |
 
-TTL muito curto: risco de falsa expiração durante GC ou pico de CPU. TTL muito longo: delay maior para failover.
+TTL too short: risk of false expiration during GC or CPU spike. TTL too long: longer delay for failover.
 
-Ver receita em [06-receitas/leader-election.md](../06-receitas/leader-election.md).
+See recipe in [06-recipes/leader-election.md](../06-recipes/leader-election.md).

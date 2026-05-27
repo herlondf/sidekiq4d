@@ -1,17 +1,17 @@
-﻿# Outbox Pattern
+# Outbox Pattern
 
-Garante que mensagens sejam publicadas de forma confiável junto com operações de banco de dados, evitando o problema de "gravar no banco mas falhar ao publicar na fila" (ou vice-versa).
+Ensures that messages are published reliably alongside database operations, avoiding the problem of "writing to the database but failing to publish to the queue" (or vice versa).
 
-## Conceito
+## Concept
 
-O Outbox Pattern consiste em:
-1. Gravar a mensagem na tabela de outbox **dentro da mesma transação** que grava os dados de negócio
-2. Um processo separado lê o outbox e publica na fila real
-3. Após publicação bem-sucedida, remove a entrada do outbox
+The Outbox Pattern consists of:
+1. Writing the message to the outbox table **within the same transaction** that writes the business data
+2. A separate process reads the outbox and publishes to the real queue
+3. After successful publishing, removes the entry from the outbox
 
-Isso garante entrega at-least-once com consistência transacional.
+This guarantees at-least-once delivery with transactional consistency.
 
-## Interface IHefestoClientOutbox
+## IHefestoClientOutbox interface
 
 ```pascal
 IHefestoClientOutbox = interface
@@ -23,7 +23,7 @@ IHefestoClientOutbox = interface
 end;
 ```
 
-## Uso básico
+## Basic usage
 
 ```pascal
 uses
@@ -35,19 +35,19 @@ var
 begin
   LOutbox := THefestoStateStoreOutbox.New(LStore);
 
-  // Dentro da transação de negócio:
+  // Inside the business transaction:
   LRequest.Queue := 'notifications';
   LRequest.Action := 'send_email';
-  LRequest.Body := '{"to": "user@example.com", "subject": "Pedido confirmado"}';
+  LRequest.Body := '{"to": "user@example.com", "subject": "Order confirmed"}';
 
   LOutbox.Save(LRequest);
-  // + gravar dados de negócio no banco (mesma transação)
+  // + write business data to the database (same transaction)
 end;
 ```
 
-## Relay (publicação do outbox)
+## Relay (publishing from the outbox)
 
-O relay lê entradas do outbox e as publica na fila real:
+The relay reads outbox entries and publishes them to the real queue:
 
 ```pascal
 var
@@ -56,28 +56,28 @@ begin
   for var Entry in LEntries do
   begin
     try
-      LQueue.Enqueue(Entry.Request);
+      LQueue.Enqueue(Entry.Request.Action, Entry.Request.Body);
       LOutbox.Remove(Entry.Id);
     except
-      // manter no outbox para tentar novamente
+      // keep in outbox to retry later
     end;
   end;
 end;
 ```
 
-O relay pode rodar como job periódico usando [Periodic Jobs](scheduled-e-periodic.md).
+The relay can run as a periodic job using [Periodic Jobs](scheduled-e-periodic.md).
 
-## Verificando e limpando
+## Checking and clearing
 
 ```pascal
-Writeln('Entradas pendentes: ', LOutbox.Count);
+Writeln('Pending entries: ', LOutbox.Count);
 
-// Limpar tudo (usar com cuidado — perde mensagens não publicadas)
+// Clear all (use with care — loses unpublished messages)
 LOutbox.Clear;
 ```
 
-## Persistência
+## Persistence
 
-Usar `THefestoInMemoryStateStore` para o outbox implica perda de mensagens ao reiniciar. Para garantias transacionais reais, use `THefestoPostgreSQLStateStore` ou `THefestoFireDACStateStore` com SQLite, pois permitem participar da mesma transação de banco.
+Using `THefestoInMemoryStateStore` for the outbox implies losing messages on restart. For real transactional guarantees, use `THefestoPostgreSQLStateStore` or `THefestoFireDACStateStore` with SQLite, as they can participate in the same database transaction.
 
-Ver receita em [06-receitas/outbox.md](../06-receitas/outbox.md).
+See recipe in [06-recipes/outbox.md](../06-recipes/outbox.md).

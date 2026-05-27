@@ -53,7 +53,7 @@ git clone https://github.com/herlondf/hefesto.git
 ```
 
 ```
-Search path: sidekiq4d\src\
+Search path: hefesto\src\
 ```
 
 ### 2. Define a job handler
@@ -186,31 +186,31 @@ Implement `IHefestoServerMiddleware` (1 method) to add your own.
 
 | Example | Scenario |
 |---------|----------|
-| [BasicConsole](examples/BasicConsole) | Simple job, handler, telemetry |
-| [ScheduledJobs](examples/ScheduledJobs) | EnqueueIn, EnqueueAt, Periodic (cron) |
-| [BatchJobs](examples/BatchJobs) | Batch with OnComplete/OnSuccess callbacks |
-| [ConcurrencyControl](examples/ConcurrencyControl) | Limits, rate limit, unique, idempotency |
-| [Middleware](examples/Middleware) | Client + server middleware pipeline |
-| [Reliability](examples/Reliability) | Outbox, leader election, pause/resume |
-| [RetryDLQ](examples/RetryDLQ) | Exponential backoff, dead-letter |
-| [SQLite](examples/SQLite) | SQLite state store via FireDAC |
-| [Postgres](examples/Postgres) | PostgreSQL state store via FireDAC |
-| [Redis](examples/Redis) | Full Redis4D integration |
-| [WindowsService](examples/WindowsService) | Windows Service template |
-| [SqsConsole](examples/SqsConsole) | AWS SQS with Signature V4 |
-| [HTTPIngress](examples/HTTPIngress) | HTTP webhook receiver |
-| [CircuitBreaker](examples/CircuitBreaker) | External provider protection |
-| [TelemetryAgent](examples/TelemetryAgent) | Full telemetry agent (HTTP + providers) |
-| [EmailSender](examples/EmailSender) | Async email with rate limiting |
-| [PDFGenerator](examples/PDFGenerator) | Batch PDF generation with callback |
-| [WebhookDispatcher](examples/WebhookDispatcher) | Resilient webhook delivery |
-| [ETLPipeline](examples/ETLPipeline) | Job chaining (extract->transform->load) |
-| [NotificationHub](examples/NotificationHub) | Multi-channel fan-out routing |
-| [SQSBenchmark](examples/SQSBenchmark) | Real benchmark: manual vs Hefesto |
-| [VCLDemo](examples/VCLDemo) | Visual split-screen comparison |
-| [JobGraph](examples/JobGraph) | DAG of dependent jobs with parallel execution |
-| [OTLPTelemetry](examples/OTLPTelemetry) | OpenTelemetry trace export to Jaeger/Tempo |
-| [HorseIntegration](examples/HorseIntegration) | Horse framework middleware integration |
+| [BasicConsole](samples/BasicConsole) | Simple job, handler, telemetry |
+| [ScheduledJobs](samples/ScheduledJobs) | EnqueueIn, EnqueueAt, Periodic (cron) |
+| [BatchJobs](samples/BatchJobs) | Batch with OnComplete/OnSuccess callbacks |
+| [ConcurrencyControl](samples/ConcurrencyControl) | Limits, rate limit, unique, idempotency |
+| [Middleware](samples/Middleware) | Client + server middleware pipeline |
+| [Reliability](samples/Reliability) | Outbox, leader election, pause/resume |
+| [RetryDLQ](samples/RetryDLQ) | Exponential backoff, dead-letter |
+| [SQLite](samples/SQLite) | SQLite state store via FireDAC |
+| [Postgres](samples/Postgres) | PostgreSQL state store via FireDAC |
+| [Redis](samples/Redis) | Full Redis4D integration |
+| [WindowsService](samples/WindowsService) | Windows Service template |
+| [SqsConsole](samples/SqsConsole) | AWS SQS with Signature V4 |
+| [HTTPIngress](samples/HTTPIngress) | HTTP webhook receiver |
+| [CircuitBreaker](samples/CircuitBreaker) | External provider protection |
+| [TelemetryAgent](samples/TelemetryAgent) | Full telemetry agent (HTTP + providers) |
+| [EmailSender](samples/EmailSender) | Async email with rate limiting |
+| [PDFGenerator](samples/PDFGenerator) | Batch PDF generation with callback |
+| [WebhookDispatcher](samples/WebhookDispatcher) | Resilient webhook delivery |
+| [ETLPipeline](samples/ETLPipeline) | Job chaining (extract->transform->load) |
+| [NotificationHub](samples/NotificationHub) | Multi-channel fan-out routing |
+| [SQSBenchmark](samples/SQSBenchmark) | Real benchmark: manual vs Hefesto |
+| [VCLDemo](samples/VCLDemo) | Visual split-screen comparison |
+| [JobGraph](samples/JobGraph) | DAG of dependent jobs with parallel execution |
+| [OTLPTelemetry](samples/OTLPTelemetry) | OpenTelemetry trace export to Jaeger/Tempo |
+| [HorseIntegration](samples/HorseIntegration) | Horse framework middleware integration |
 
 ## Project Structure
 
@@ -218,7 +218,7 @@ Implement `IHefestoServerMiddleware` (1 method) to add your own.
 src/                ~35 framework units
 src/adapters/       ~35 adapter units (queues, middlewares, providers, telemetry)
 src/vendor/         Synapse (bundled)
-examples/           25 runnable demos
+samples/           25 runnable demos
 tests/              DUnitX unit tests (11 fixtures) + thread-safety + Redis smoke
 docs/               Presentation (md + pptx)
 docker/             docker-compose for local Redis, Postgres and Jaeger
@@ -226,13 +226,8 @@ docker/             docker-compose for local Redis, Postgres and Jaeger
 
 ## Contributing
 
-Pull requests are welcome. For major changes, open an issue first to discuss.
-
-**Patterns to follow:**
-- Interfaces for extensibility (`IHefestoQueueAdapter`, `IHefestoServerMiddleware`)
-- Fluent API (method chaining returning `Self`)
-- `class function New` as factory
-- Thread-safety: `TCriticalSection` / `TInterlocked` / `TThreadedQueue`
+See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for guidelines on adapters, middleware, state stores, tests, and pull request flow.
+Also available in Portuguese: [CONTRIBUTING_pt-br.md](./docs/CONTRIBUTING_pt-br.md)
 
 ## The Olympian Family
 
@@ -261,3 +256,7 @@ Hefesto is inspired by [Sidekiq](https://github.com/sidekiq/sidekiq), the battle
 ## License
 
 [MIT](LICENSE) — use freely in commercial and open-source projects.
+
+---
+
+> 🇧🇷 Leia este documento em português: [README_pt-br.md](./README_pt-br.md)

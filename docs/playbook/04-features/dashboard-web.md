@@ -1,8 +1,8 @@
-﻿# Dashboard Web
+# Web Dashboard
 
-Interface web para monitoramento e gestão do servidor Hefesto em tempo real.
+Web interface for real-time monitoring and management of the Hefesto server.
 
-## Iniciando
+## Starting
 
 ```pascal
 uses
@@ -13,46 +13,45 @@ THefestoWebDashboard.New
   .Start;
 ```
 
-Acesse em `http://localhost:8080`.
+Access at `http://localhost:8080`.
 
-## Endpoints REST
+## REST Endpoints
 
-### Saúde e métricas
+### Health and metrics
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/health` | Status do servidor (JSON) |
-| GET | `/metrics` | Métricas no formato Prometheus |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Server status (JSON) |
+| GET | `/metrics` | Metrics in Prometheus format |
 
-### Monitoramento
+### Monitoring
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/api/workers` | Workers ativos e status |
-| GET | `/api/queues` | Filas e contagem de jobs |
-| GET | `/api/dlq` | Jobs na Dead Letter Queue |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workers` | Active workers and status |
+| GET | `/api/queues` | Queues and job counts |
+| GET | `/api/dlq` | Jobs in the Dead Letter Queue |
 
-### Gestão
+### Management
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| DELETE | `/api/scheduled` | Remove jobs agendados |
-| POST | `/api/dlq/reprocess` | Recoloca jobs da DLQ na fila |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| DELETE | `/api/scheduled` | Removes scheduled jobs |
+| POST | `/api/dlq/reprocess` | Returns DLQ jobs to the queue |
 
-## Interface web
+## Web interface
 
-O dashboard usa Bootstrap 5 + Chart.js com:
-- Atualização em tempo real via **WebSocket** (push a cada 1s sem polling)
-- Fallback automático: WebSocket → SSE → polling HTTP a cada 5s
-- Indicador de status de conexão no canto da tela
-- Gráficos de throughput e taxa de erros
-- Listagem de jobs agendados com opção de cancelamento
-- Inspeção de jobs na DLQ com reprocessamento individual
+The dashboard uses Bootstrap 5 + Chart.js with:
+- Real-time updates via **WebSocket** (push every 1s without polling)
+- Automatic fallback: WebSocket → SSE → HTTP polling every 5s
+- Connection status indicator in the corner of the screen
+- Throughput and error rate charts
+- Scheduled job listing with cancellation option
+- DLQ job inspection with individual reprocessing
 
 ## WebSocket real-time
 
-O endpoint `/ws` aceita conexões WebSocket (RFC 6455). O servidor faz push de métricas
-a cada 1 segundo para todos os clientes conectados.
+The `/ws` endpoint accepts WebSocket connections (RFC 6455). The server pushes metrics every 1 second to all connected clients.
 
 ```javascript
 const ws = new WebSocket('ws://localhost:8080/ws');
@@ -62,7 +61,7 @@ ws.onmessage = (e) => {
 };
 ```
 
-O payload enviado tem o mesmo formato do endpoint `/api/overview`:
+The payload sent has the same format as the `/api/overview` endpoint:
 
 ```json
 {
@@ -75,13 +74,11 @@ O payload enviado tem o mesmo formato do endpoint `/api/overview`:
 }
 ```
 
-A SPA do dashboard detecta suporte a WebSocket automaticamente. Se a conexão
-falhar ou o navegador não suportar, ela cai para SSE (`/api/stream`) e depois
-para polling HTTP a cada 5s.
+The dashboard SPA detects WebSocket support automatically. If the connection fails or the browser does not support it, it falls back to SSE (`/api/stream`) and then to HTTP polling every 5s.
 
-## Métricas Prometheus
+## Prometheus Metrics
 
-O endpoint `/metrics` expõe contadores compatíveis com Prometheus:
+The `/metrics` endpoint exposes Prometheus-compatible counters:
 
 ```
 sidekiq4d_jobs_processed_total{queue="default",status="success"}
@@ -90,11 +87,11 @@ sidekiq4d_workers_active
 sidekiq4d_queue_depth{queue="default"}
 ```
 
-Configure o Prometheus para scrape em `http://host:8080/metrics`.
+Configure Prometheus to scrape at `http://host:8080/metrics`.
 
-## Jaeger / OTLP com Docker
+## Jaeger / OTLP with Docker
 
-Para observabilidade completa com traces:
+For complete observability with traces:
 
 ```yaml
 # docker/docker-compose.yml
@@ -102,7 +99,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
-      - "16686:16686"   # UI Jaeger
+      - "16686:16686"   # Jaeger UI
       - "4318:4318"     # OTLP HTTP
 ```
 
@@ -110,14 +107,14 @@ services:
 cd docker && docker-compose up -d jaeger
 ```
 
-Configurar o servidor para enviar traces:
+Configure the server to send traces:
 ```pascal
 .Telemetry(THefestoOTLPTraceTelemetry.New(
-  'http://localhost:4318',  // endpoint OTLP
-  'meu-servico'             // service name
+  'http://localhost:4318',  // OTLP endpoint
+  'my-service'              // service name
 ))
 ```
 
-Acessar UI em `http://localhost:16686`.
+Access UI at `http://localhost:16686`.
 
-Ver receita completa em [06-receitas/telemetria-otlp.md](../06-receitas/telemetria-otlp.md) e [06-receitas/dashboard-web.md](../06-receitas/dashboard-web.md).
+See complete recipes in [06-recipes/telemetria-otlp.md](../06-recipes/telemetria-otlp.md) and [06-recipes/dashboard-web.md](../06-recipes/dashboard-web.md).

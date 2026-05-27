@@ -1,10 +1,10 @@
-﻿# Scheduled e Periodic Jobs
+# Scheduled and Periodic Jobs
 
-## Scheduled Jobs (execução futura única)
+## Scheduled Jobs (single future execution)
 
-Jobs agendados para uma data/hora específica. Requerem um `IHefestoScheduledStore` configurado no servidor.
+Jobs scheduled for a specific date/time. Require an `IHefestoScheduledStore` configured on the server.
 
-### Interface IHefestoScheduledStore
+### IHefestoScheduledStore interface
 
 ```pascal
 IHefestoScheduledStore = interface
@@ -15,7 +15,7 @@ IHefestoScheduledStore = interface
 end;
 ```
 
-### Agendando um job
+### Scheduling a job
 
 ```pascal
 var
@@ -25,76 +25,76 @@ begin
     'default',              // queue
     'send_report',          // action
     '{"report_id": 42}',   // body JSON
-    [],                     // attrs extras
-    Now + (1/24)            // DueAt: daqui a 1 hora
+    [],                     // extra attrs
+    Now + (1/24)            // DueAt: 1 hour from now
   );
   LScheduledStore.Schedule(LEntry);
 end;
 ```
 
-### Configurando o servidor para processar scheduled jobs
+### Configuring the server to process scheduled jobs
 
 ```pascal
 THefestoServer.New
   .UseQueue(TMyAdapter.New)
   .StateStore(LStore)
-  // O ScheduledStore é configurado separadamente
+  // The ScheduledStore is configured separately
   .RegisterHandler('send_report', TSendReportHandler.Create)
   .Run;
 ```
 
-O servidor verifica `PopDue` periodicamente e enfileira jobs cujo `DueAt` já passou.
+The server checks `PopDue` periodically and enqueues jobs whose `DueAt` has already passed.
 
-### Gerenciamento
+### Management
 
 ```pascal
-// Listar agendados
+// List scheduled jobs
 var LList := LScheduledStore.List;
 
-// Cancelar
+// Cancel
 LScheduledStore.Delete('default', 'send_report', DueAt);
 ```
 
-Via API REST do dashboard: `DELETE /api/scheduled`.
+Via dashboard REST API: `DELETE /api/scheduled`.
 
 ## Periodic Jobs (cron)
 
-Jobs que executam em intervalos definidos por expressão cron.
+Jobs that execute at intervals defined by a cron expression.
 
-### Formato cron (5 campos)
+### Cron format (5 fields)
 
 ```
-min  hora  dia  mês  diasemana
+min  hour  day  month  weekday
 ```
 
-Exemplos:
+Examples:
 ```
-*/15  *    *    *    *     a cada 15 minutos
-0     9    *    *    1-5   toda segunda a sexta às 9h
-0     */2  *    *    *     a cada 2 horas
-30    8    1    *    *     dia 1 de cada mês às 8h30
-0     9    *    *    1,3,5 segunda, quarta e sexta às 9h
+*/15  *    *    *    *     every 15 minutes
+0     9    *    *    1-5   every weekday at 9am
+0     */2  *    *    *     every 2 hours
+30    8    1    *    *     1st of each month at 8:30am
+0     9    *    *    1,3,5 Monday, Wednesday and Friday at 9am
 ```
 
-Campos suportados: `*`, `*/N`, `A-B`, `A,B,C`.
+Supported field syntax: `*`, `*/N`, `A-B`, `A,B,C`.
 
-### Registrando um job periódico
+### Registering a periodic job
 
 ```pascal
 THefestoPeriodicJob.Register(
-  'cleanup_temp_files',  // action/nome
-  '*/30 * * * *',        // cron: a cada 30 minutos
+  'cleanup_temp_files',  // action/name
+  '*/30 * * * *',        // cron: every 30 minutes
   'default',             // queue
-  '{}',                  // body padrão
+  '{}',                  // default body
   LScheduledStore
 );
 ```
 
-O scheduler calcula o próximo `DueAt` com base na expressão cron e agenda automaticamente. Após a execução, agenda a próxima ocorrência.
+The scheduler calculates the next `DueAt` based on the cron expression and schedules automatically. After execution, it schedules the next occurrence.
 
 ## Troubleshooting
 
-**Jobs agendados não disparam:**
-- Verificar se `IHefestoScheduledStore` está configurado e o scheduler está rodando
-- Verificar timezone: o scheduler usa horário local da máquina
-- Ver [troubleshooting.md](../05-operacao-e-runtime/troubleshooting.md)
+**Scheduled jobs do not fire:**
+- Check that `IHefestoScheduledStore` is configured and the scheduler is running
+- Check timezone: the scheduler uses the machine's local time
+- See [troubleshooting.md](../05-operations-and-runtime/troubleshooting.md)

@@ -1,11 +1,11 @@
 # 02 — Adapters
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| [queue-adapters.md](queue-adapters.md) | 9 queue adapters — tabela, quando usar cada um |
-| [state-stores.md](state-stores.md) | 6 state stores — tabela, quando usar cada um |
-| [middlewares.md](middlewares.md) | 7 middlewares — tabela, como encadear |
+| File | Content |
+|------|---------|
+| [queue-adapters.md](queue-adapters.md) | 9 queue adapters — table, when to use each |
+| [state-stores.md](state-stores.md) | 6 state stores — table, when to use each |
+| [middlewares.md](middlewares.md) | 7 middlewares — table, how to chain |
 
-Todos os adapters implementam interfaces do core e não têm dependências cruzadas entre si.
+All adapters implement core interfaces and have no cross-dependencies between them.
 
-← [Voltar ao índice](../README.md)
+← [Back to index](../README.md)

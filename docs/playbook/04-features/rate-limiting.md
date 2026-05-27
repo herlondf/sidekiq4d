@@ -1,12 +1,12 @@
-﻿# Rate Limiting
+# Rate Limiting
 
-Controla a taxa de processamento de jobs para proteger recursos downstream (APIs externas, bancos de dados, serviços terceiros).
+Controls the job processing rate to protect downstream resources (external APIs, databases, third-party services).
 
-## Implementações disponíveis
+## Available implementations
 
 ### THefestoNoopRateLimiter
 
-Não limita nada. Comportamento padrão quando nenhum rate limiter é configurado.
+Does not limit anything. Default behavior when no rate limiter is configured.
 
 ```pascal
 THefestoNoopRateLimiter.New
@@ -14,22 +14,22 @@ THefestoNoopRateLimiter.New
 
 ### THefestoTokenBucketRateLimiter
 
-Algoritmo token bucket: um bucket começa cheio e é drenado a cada job. Reabastece continuamente até o limite.
+Token bucket algorithm: a bucket starts full and is drained with each job. It refills continuously up to the limit.
 
 ```pascal
 THefestoTokenBucketRateLimiter.New(
-  LStore,           // IHefestoStateStore (persiste estado do bucket)
-  BucketSize,       // capacidade máxima do bucket (burst máximo)
-  RefillPerSecond   // tokens adicionados por segundo
+  LStore,           // IHefestoStateStore (persists bucket state)
+  BucketSize,       // maximum bucket capacity (maximum burst)
+  RefillPerSecond   // tokens added per second
 )
 ```
 
-Exemplo: permite no máximo 10 jobs por segundo com burst de 50:
+Example: allows at most 10 jobs per second with a burst of 50:
 ```pascal
 THefestoTokenBucketRateLimiter.New(LStore, 50, 10)
 ```
 
-## Interface IHefestoRateLimiter
+## IHefestoRateLimiter interface
 
 ```pascal
 IHefestoRateLimiter = interface
@@ -37,23 +37,23 @@ IHefestoRateLimiter = interface
 end;
 ```
 
-- `AKey` — identifica o bucket (ex: `'api_calls'`, `'user:42'`, `'queue:emails'`)
-- `ACost` — quantos tokens este job consome (normalmente 1)
-- Retorna `True` se pode prosseguir, `False` se deve aguardar
+- `AKey` — identifies the bucket (e.g. `'api_calls'`, `'user:42'`, `'queue:emails'`)
+- `ACost` — how many tokens this job consumes (normally 1)
+- Returns `True` if it can proceed, `False` if it should wait
 
-## Rate limiting por recurso
+## Rate limiting by resource
 
-Usando chaves diferentes é possível ter buckets independentes:
+Using different keys allows independent buckets:
 
 ```pascal
-// No handler ou middleware
+// In the handler or middleware
 if not FRateLimiter.TryAcquire('external_api', 1) then
-  raise EHefestoRateLimitExceeded.Create('Rate limit atingido');
+  raise EHefestoRateLimitExceeded.Create('Rate limit reached');
 ```
 
-## Configurando como middleware
+## Configuring as middleware
 
-O rate limiter pode ser usado diretamente no handler ou encapsulado em um middleware customizado:
+The rate limiter can be used directly in the handler or encapsulated in a custom middleware:
 
 ```pascal
 TRateLimitedHandler = class(TInterfacedObject, IHefestoJobHandler)
@@ -68,15 +68,15 @@ procedure TRateLimitedHandler.Execute(const AJob: IHefestoJobEnvelope);
 begin
   if not FRateLimiter.TryAcquire('my_resource', 1) then
   begin
-    // Rejeitar para retry posterior
+    // Reject for later retry
     raise EHefestoRateLimitExceeded.Create('Rate limit');
   end;
-  // processar job
+  // process job
 end;
 ```
 
-## Persistência do estado do bucket
+## Bucket state persistence
 
-O `THefestoTokenBucketRateLimiter` usa o `IHefestoStateStore` para persistir o estado do bucket. Com `InMemoryStateStore`, o bucket é reiniciado ao reiniciar o processo. Com Redis, persiste entre restarts.
+`THefestoTokenBucketRateLimiter` uses `IHefestoStateStore` to persist the bucket state. With `InMemoryStateStore`, the bucket is reset on process restart. With Redis, it persists across restarts.
 
-Ver receita em [06-receitas/rate-limiting.md](../06-receitas/rate-limiting.md).
+See recipe in [06-recipes/rate-limiting.md](../06-recipes/rate-limiting.md).

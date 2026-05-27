@@ -1,12 +1,12 @@
-﻿# Queue Adapters
+# Queue Adapters
 
-Implementam `IHefestoQueueAdapter` (`src/Hefesto.Queue.Interfaces.pas`).
+Implement `IHefestoQueueAdapter` (`src/Hefesto.Queue.Interfaces.pas`).
 
-## Tabela
+## Table
 
-| Adapter | Unit | Dependência externa | Protocolo |
+| Adapter | Unit | External dependency | Protocol |
 |---------|------|--------------------|-----------| 
-| `THefestoInMemoryQueueAdapter` | `Hefesto.Queue.InMemory` | Nenhuma | In-process |
+| `THefestoInMemoryQueueAdapter` | `Hefesto.Queue.InMemory` | None | In-process |
 | `THefestoSQSQueueAdapter` | `Hefesto.Queue.SQS` | AWS (HTTP + SigV4) | HTTPS REST |
 | `THefestoRabbitMQQueueAdapter` | `Hefesto.Queue.RabbitMQ` | RabbitMQ Management API | HTTPS REST |
 | `THefestoKafkaQueueAdapter` | `Hefesto.Queue.Kafka` | Confluent REST Proxy | HTTPS REST |
@@ -16,27 +16,27 @@ Implementam `IHefestoQueueAdapter` (`src/Hefesto.Queue.Interfaces.pas`).
 | `THefestoHTTPIngressAdapter` | `Hefesto.Queue.HTTPIngress` | Indy (bundled) | HTTP POST |
 | `THefestoTCPIngressAdapter` | `Hefesto.Queue.TCPIngress` | Indy/Synapse (bundled) | TCP |
 
-## Quando usar cada um
+## When to use each
 
-**InMemory** — desenvolvimento, testes unitários, protótipos. Dados perdidos ao reiniciar o processo. Não compartilha estado entre processos.
+**InMemory** — development, unit tests, prototypes. Data is lost on process restart. Does not share state between processes.
 
-**Redis Streams** — produção com Redis já na infraestrutura. Persistência, consumer groups, replay. Requer Redis4D.
+**Redis Streams** — production with Redis already in the infrastructure. Persistence, consumer groups, replay. Requires Redis4D.
 
-**SQS** — infraestrutura AWS. Gerenciado, escalável, sem manutenção de broker. Latência maior que Redis.
+**SQS** — AWS infrastructure. Managed, scalable, no broker maintenance. Higher latency than Redis.
 
-**RabbitMQ** — roteamento avançado com exchanges, bindings e dead letter nativa. Requer RabbitMQ Management API habilitado.
+**RabbitMQ** — advanced routing with exchanges, bindings, and native dead letter. Requires RabbitMQ Management API enabled.
 
-**Kafka** — alto volume, retenção de eventos, múltiplos consumers independentes. Requer Confluent REST Proxy (não conecta direto ao broker Kafka).
+**Kafka** — high volume, event retention, multiple independent consumers. Requires Confluent REST Proxy (does not connect directly to the Kafka broker).
 
-**Azure Service Bus** — infraestrutura Azure. Sessions, filas com lock, dead letter gerenciada.
+**Azure Service Bus** — Azure infrastructure. Sessions, queues with lock, managed dead letter.
 
-**Google Pub/Sub** — infraestrutura GCP. Push e pull, subscriptions gerenciadas.
+**Google Pub/Sub** — GCP infrastructure. Push and pull, managed subscriptions.
 
-**HTTP Ingress** — receber jobs via HTTP POST de outros sistemas. Útil para webhooks e integrações sem broker.
+**HTTP Ingress** — receive jobs via HTTP POST from other systems. Useful for webhooks and integrations without a broker.
 
-**TCP Ingress** — receber jobs via TCP de sistemas internos com baixa latência.
+**TCP Ingress** — receive jobs via TCP from internal systems with low latency.
 
-## Interface IHefestoQueueAdapter
+## IHefestoQueueAdapter interface
 
 ```pascal
 IHefestoQueueAdapter = interface
@@ -48,11 +48,11 @@ IHefestoQueueAdapter = interface
 end;
 ```
 
-- `Fetch` deve ser bloqueante com timeout ou retornar `False` imediatamente se a fila estiver vazia
-- `Ack` confirma o processamento bem-sucedido
-- `Nack` devolve o job para a fila (retry)
-- `MoveToDeadLetter` move para DLQ após esgotar as tentativas
+- `Fetch` should be blocking with a timeout or return `False` immediately if the queue is empty
+- `Ack` confirms successful processing
+- `Nack` returns the job to the queue (retry)
+- `MoveToDeadLetter` moves to DLQ after all attempts are exhausted
 
-## Como implementar um adapter próprio
+## How to implement a custom adapter
 
-Ver [CLAUDE.md](../../CLAUDE.md) — seção "Adicionando um Queue Adapter".
+See [CLAUDE.md](../../CLAUDE.md) — section "Adding a Queue Adapter".

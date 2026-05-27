@@ -1,8 +1,8 @@
-﻿# Batch Jobs
+# Batch Jobs
 
-Processamento de múltiplos jobs como uma unidade lógica, com callbacks executados quando o lote completa ou é bem-sucedido.
+Processing multiple jobs as a logical unit, with callbacks executed when the batch completes or succeeds.
 
-## Criando um batch
+## Creating a batch
 
 ```pascal
 uses
@@ -19,11 +19,11 @@ begin
   THefestoBatch.New(LBatchStore)
     .OnComplete(procedure
       begin
-        Writeln('Batch concluído (sucesso ou falha)');
+        Writeln('Batch complete (success or failure)');
       end)
     .OnSuccess(procedure
       begin
-        Writeln('Todos os jobs do batch foram bem-sucedidos');
+        Writeln('All batch jobs succeeded');
       end)
     .Add('process_item', '{"id": 1}')
     .Add('process_item', '{"id": 2}')
@@ -32,18 +32,18 @@ begin
 end;
 ```
 
-## Semântica dos callbacks
+## Callback semantics
 
-| Callback | Quando dispara |
-|----------|---------------|
-| `OnComplete` | Quando todos os jobs terminam (qualquer status) |
-| `OnSuccess` | Somente quando todos os jobs terminam sem falha |
+| Callback | When it fires |
+|----------|--------------|
+| `OnComplete` | When all jobs finish (any status) |
+| `OnSuccess` | Only when all jobs finish without failure |
 
-- Se algum job falha e é movido para DLQ, `OnSuccess` não dispara
-- `OnComplete` sempre dispara ao final do batch, independente de falhas
-- Callbacks são executados no thread do último worker que concluir
+- If any job fails and is moved to DLQ, `OnSuccess` does not fire
+- `OnComplete` always fires at the end of the batch, regardless of failures
+- Callbacks are executed on the thread of the last worker to complete
 
-## Adicionando jobs dinamicamente
+## Adding jobs dynamically
 
 ```pascal
 var
@@ -52,7 +52,7 @@ begin
   LBatch := THefestoBatch.New(LBatchStore)
     .OnComplete(procedure begin ... end);
 
-  // Adicionar jobs de forma condicional
+  // Add jobs conditionally
   for var Item in FItems do
     if Item.NeedsProcessing then
       LBatch.Add('process_item', TJson.Serialize(Item));
@@ -61,21 +61,21 @@ begin
 end;
 ```
 
-`Commit` finaliza o batch e libera os jobs para execução. Não adicione jobs após `Commit`.
+`Commit` finalizes the batch and releases the jobs for execution. Do not add jobs after `Commit`.
 
-## Rastreando o progresso
+## Tracking progress
 
-O batch store mantém contadores de jobs pendentes, concluídos e falhados. Para inspecionar:
+The batch store maintains counters of pending, completed, and failed jobs. To inspect:
 
 ```pascal
 var LStatus := LBatchStore.GetStatus(BatchId);
-Writeln(Format('Pendentes: %d, OK: %d, Falhos: %d',
+Writeln(Format('Pending: %d, OK: %d, Failed: %d',
   [LStatus.Pending, LStatus.Succeeded, LStatus.Failed]));
 ```
 
-## Batch com StateStore externo (Redis)
+## Batch with external StateStore (Redis)
 
-Para batches que sobrevivem a restarts do processo:
+For batches that survive process restarts:
 
 ```pascal
 LStore := THefestoRedis4DStateStore.New
@@ -83,4 +83,4 @@ LStore := THefestoRedis4DStateStore.New
 LBatchStore := THefestoStateStoreBatchStore.New(LStore);
 ```
 
-Ver receita completa em [06-receitas/batch-com-callback.md](../06-receitas/batch-com-callback.md).
+See the complete recipe in [06-recipes/batch-com-callback.md](../06-recipes/batch-com-callback.md).

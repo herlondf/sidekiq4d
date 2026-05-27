@@ -1,14 +1,14 @@
-﻿# Job Graph (DAG)
+# Job Graph (DAG)
 
-Executa jobs com dependências declaradas, formando um grafo acíclico dirigido (DAG). Nós sem dependências pendentes executam em paralelo.
+Executes jobs with declared dependencies, forming a directed acyclic graph (DAG). Nodes with no pending dependencies execute in parallel.
 
-## Conceito
+## Concept
 
 ```
 extract ──► transform ──► load
 ```
 
-Neste exemplo, `transform` só inicia após `extract` concluir, e `load` só após `transform`. Com `.Parallel`, nós independentes executam ao mesmo tempo.
+In this example, `transform` only starts after `extract` completes, and `load` only after `transform`. With `.Parallel`, independent nodes execute at the same time.
 
 ## API
 
@@ -20,11 +20,11 @@ THefestoJobGraph.New
   .Node('extract',   TExtractJob.Create)
   .Node('transform', TTransformJob.Create).DependsOn('extract')
   .Node('load',      TLoadJob.Create).DependsOn('transform')
-  .Parallel                    // nós sem dependências pendentes rodam em paralelo
+  .Parallel                    // nodes with no pending dependencies run in parallel
   .Execute(LQueue, LServer);
 ```
 
-## Exemplo com múltiplos ramos paralelos
+## Example with multiple parallel branches
 
 ```
           ┌─► normalize_a ─┐
@@ -45,20 +45,20 @@ THefestoJobGraph.New
   .Execute(LQueue, LServer);
 ```
 
-`normalize_a` e `normalize_b` executam em paralelo após `ingest`. `merge` aguarda ambos.
+`normalize_a` and `normalize_b` execute in parallel after `ingest`. `merge` waits for both.
 
-## Referência de métodos
+## Method reference
 
-| Método | Descrição |
-|--------|-----------|
-| `.Node(name, handler)` | Declara um nó do grafo |
-| `.DependsOn(nodeName)` | Adiciona dependência ao último nó declarado |
-| `.Parallel` | Habilita execução paralela de nós independentes |
-| `.Execute(queue, server)` | Inicia a execução do grafo |
+| Method | Description |
+|--------|-------------|
+| `.Node(name, handler)` | Declares a graph node |
+| `.DependsOn(nodeName)` | Adds a dependency to the last declared node |
+| `.Parallel` | Enables parallel execution of independent nodes |
+| `.Execute(queue, server)` | Starts execution of the graph |
 
-## Handlers de nó
+## Node handlers
 
-Cada nó usa um `IHefestoJobHandler` normal. O grafo gerencia a orquestração:
+Each node uses a normal `IHefestoJobHandler`. The graph manages orchestration:
 
 ```pascal
 TExtractJob = class(TInterfacedObject, IHefestoJobHandler)
@@ -74,21 +74,21 @@ end;
 
 procedure TExtractJob.Execute(const AJob: IHefestoJobEnvelope);
 begin
-  // extrai dados e pode gravar resultado para uso nos nós seguintes
-  // use StateStore para passar dados entre nós, se necessário
+  // extract data and can write results for use in subsequent nodes
+  // use StateStore to pass data between nodes if needed
 end;
 ```
 
-## Passagem de dados entre nós
+## Passing data between nodes
 
-O grafo não passa dados entre nós automaticamente. Padrões recomendados:
+The graph does not pass data between nodes automatically. Recommended patterns:
 
-1. **StateStore compartilhado:** cada nó grava/lê do store com chaves combinando o ID do grafo
-2. **Banco de dados:** nós gravam resultados em tabelas; nós seguintes consultam
-3. **Arquivos temporários:** para grandes volumes de dados
+1. **Shared StateStore:** each node reads/writes from the store with keys combining the graph ID
+2. **Database:** nodes write results to tables; subsequent nodes query them
+3. **Temporary files:** for large data volumes
 
-## Sem `.Parallel`
+## Without `.Parallel`
 
-Sem `.Parallel`, o grafo executa os nós em sequência na ordem de declaração. Dependências ainda são respeitadas, mas não há paralelismo mesmo que o grafo permita.
+Without `.Parallel`, the graph executes nodes sequentially in declaration order. Dependencies are still respected, but there is no parallelism even when the graph allows it.
 
-Ver receita em [06-receitas/job-graph-dag.md](../06-receitas/job-graph-dag.md).
+See recipe in [06-recipes/job-graph-dag.md](../06-recipes/job-graph-dag.md).
